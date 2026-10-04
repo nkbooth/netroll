@@ -1,0 +1,22 @@
+<!-- SPDX-License-Identifier: RPL-1.5 -->
+<!-- Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. -->
+<mjml>
+<mj-include path="./_head.mjml" />
+  <mj-body background-color="$NR_BG$">
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600" color="$NR_ACCENT_INK$">Confirm your new NetRoll email</mj-text>
+        <mj-text>Use the button below to confirm this address. It works once and expires in {{ ttl_minutes }} minutes.</mj-text>
+        <mj-button href="{{ link }}">Confirm this address</mj-button>
+        <mj-text color="$NR_TEXT_MUTED$" font-size="13px" line-height="20px">
+          If the button does not work, copy this link into your browser:
+        </mj-text>
+        <mj-text color="$NR_ACCENT_INK$" font-size="13px" line-height="20px">{{ link }}</mj-text>
+        <mj-text color="$NR_TEXT_MUTED$" font-size="13px" line-height="20px">
+          If you didn't request it, you can ignore this email.
+        </mj-text>
+<mj-include path="./_footer.mjml" />
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

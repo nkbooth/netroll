@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_session_roles\n             WHERE net_session_id = $1 AND account_id = $2 AND role = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0508ad142fa8411b3567ac3d945afef2e798c69511f4e9a46f526f524bbbec9"
+}

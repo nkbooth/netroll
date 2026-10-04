@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS \"id!\", occurred_at AS \"occurred_at!\",\n                    actor_account_id AS \"actor_account_id!\", action AS \"action!\",\n                    target_type, target_id, metadata,\n                    context_session_id, context_definition_id\n             FROM (\n                 (SELECT a.id, a.occurred_at, a.actor_account_id, a.action, a.target_type,\n                         a.target_id, a.metadata, a.context_session_id, a.context_definition_id\n                    FROM audit_log a\n                   WHERE ($1::timestamptz IS NULL OR (a.occurred_at, a.id) < ($1, $2))\n                     AND ($4::uuid IS NULL OR a.actor_account_id = $4)\n                     AND ($5::text IS NULL OR a.action = $5)\n                     AND ($6::uuid IS NULL OR a.target_id = $6)\n                   ORDER BY a.occurred_at DESC, a.id DESC\n                   LIMIT $3)\n                 UNION ALL\n                 (SELECT a.id, a.occurred_at, a.actor_account_id, a.action, a.target_type,\n                         a.target_id, a.metadata, a.context_session_id, a.context_definition_id\n                    FROM audit_log a\n                   WHERE $6::uuid IS NOT NULL\n                     AND (a.context_session_id = $6 OR a.context_definition_id = $6)\n                     AND a.target_id IS DISTINCT FROM $6\n                     AND ($1::timestamptz IS NULL OR (a.occurred_at, a.id) < ($1, $2))\n                     AND ($4::uuid IS NULL OR a.actor_account_id = $4)\n                     AND ($5::text IS NULL OR a.action = $5)\n                   ORDER BY a.occurred_at DESC, a.id DESC\n                   LIMIT $3)\n             ) u\n             ORDER BY u.occurred_at DESC, u.id DESC\n             LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "occurred_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "actor_account_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "action!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "target_type",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "target_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "metadata",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "context_session_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "context_definition_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Uuid",
+        "Int8",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "2320260289139d81edb2781307b9b9f7e55a469a7c0200ad5f3ee01a30a02d17"
+}

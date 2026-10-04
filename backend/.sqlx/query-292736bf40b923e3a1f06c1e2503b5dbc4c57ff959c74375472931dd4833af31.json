@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n             SET email_verified_at = COALESCE(email_verified_at, $2), updated_at = $2,\n                 deleted_at = NULL\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "292736bf40b923e3a1f06c1e2503b5dbc4c57ff959c74375472931dd4833af31"
+}

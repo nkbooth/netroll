@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_definitions SET archived_at = $1\n             WHERE archived_at IS NULL\n               AND NOT EXISTS (\n                   SELECT 1 FROM net_definition_owners o\n                   WHERE o.net_definition_id = net_definitions.id\n               )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "22909f9ee06f1b7c5162cdd12822c7dfb23b3d74a15c62feb45db90ad5d3f8df"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_delivery_jobs\n                WHERE state <> $1 AND completed_at IS NOT NULL AND completed_at <= $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b0d37a7b558fa36751de5005819db39a1fce0980ed21b39f19f07ac565ada08"
+}

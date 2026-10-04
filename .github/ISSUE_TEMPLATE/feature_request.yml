@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: Feature request
+description: Something you would like NetRoll to do.
+labels: [enhancement]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Describe the outcome you want, not the implementation. Callsigns, net names and
+              net descriptions are welcome; please leave out email addresses, phone numbers,
+              street addresses and session tokens.
+    - type: textarea
+      id: outcome
+      attributes:
+          label: What would you like to be able to do?
+      validations:
+          required: true
+    - type: textarea
+      id: today
+      attributes:
+          label: What do you do today instead?

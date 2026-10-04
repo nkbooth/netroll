@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Host-side pre-commit hook: block secret-shaped strings from being committed.
+# Commits happen on the HOST, where the pre-commit framework does not exist —
+# this script is self-contained and wired via `git config core.hooksPath
+# scripts/git-hooks` (one-time, documented in CONTRIBUTING.md, via scripts/bootstrap-hooks.sh).
+#
+# Fails CLOSED: no gitleaks binary and no podman means no commit.
+set -u
+
+GITLEAKS_ARGS=(git --pre-commit --redact --staged --verbose)
+GITLEAKS_IMAGE="ghcr.io/gitleaks/gitleaks:v8.30.1"
+
+if command -v gitleaks >/dev/null 2>&1; then
+    exec gitleaks "${GITLEAKS_ARGS[@]}"
+fi
+
+if command -v podman >/dev/null 2>&1; then
+    # label=disable instead of :Z — :Z would SELinux-relabel the whole repo
+    # on atomic Fedora.
+    exec podman run --rm --security-opt label=disable \
+        -v "$PWD:/repo:ro" -w /repo \
+        "$GITLEAKS_IMAGE" "${GITLEAKS_ARGS[@]}"
+fi
+
+echo "pre-commit: BLOCKED — gitleaks secret scan could not run." >&2
+echo "Neither 'gitleaks' nor 'podman' is available on PATH. Install one" >&2
+echo "(hook fails closed; see CONTRIBUTING.md)." >&2
+exit 1

@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: RPL-1.5 */
+/* Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. */
+/*
+ * The live-dot pulse. tokens.css already ships the `.live-pulse` reduced-motion
+ * hook (`animation: none !important` under prefers-reduced-motion) and the
+ * `--motion-live-pulse` duration token; this defines the keyframes + base rule
+ * that hook governs. Under reduced motion BOTH guards apply: the duration token
+ * collapses to 0s AND the class override forces `animation: none`.
+ */
+@keyframes netroll-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-pulse {
+  animation: netroll-live-pulse var(--motion-live-pulse, 2s) var(--motion-ease, ease-out) infinite;
+}

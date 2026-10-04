@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    The 16px layer of favicon.ico ONLY. At that size the full logomark's two
+    concentric arcs land at 2.8px and 1.4px radii and merge into a blob, so
+    this variant keeps a single, heavier arc over the dot: still unmistakably
+    the radio-signal mark, but it survives a 16px raster. Browsers that support
+    SVG favicons never load this file; they get favicon.svg.
+  -->
+  <rect width="32" height="32" rx="8.6" fill="#2BC8DE" />
+  <path
+    d="M9.6 18.2a6.4 6.4 0 0 1 12.8 0"
+    fill="none"
+    stroke="#0D1117"
+    stroke-width="3.2"
+    stroke-linecap="round"
+  />
+  <circle cx="16" cy="18.2" r="1.9" fill="#0D1117" />
+</svg>

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.account_id, a.callsign\n             FROM net_definition_owners o\n             JOIN accounts a ON a.id = o.account_id\n             WHERE o.net_definition_id = $1\n             ORDER BY o.created_at, o.account_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_definition_owners",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "callsign",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "callsign"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "02d3b372951a4699c666ec81055f027d63c0ca6991e52819fcc25cbe727d8dc3"
+}

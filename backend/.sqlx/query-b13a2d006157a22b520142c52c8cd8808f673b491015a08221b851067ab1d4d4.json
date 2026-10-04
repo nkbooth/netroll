@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE magic_link_tokens SET consumed_at = $2\n             WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > $2\n             RETURNING email",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "magic_link_tokens",
+            "name": "email"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b13a2d006157a22b520142c52c8cd8808f673b491015a08221b851067ab1d4d4"
+}

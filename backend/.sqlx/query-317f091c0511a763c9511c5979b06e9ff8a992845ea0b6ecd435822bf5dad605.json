@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page.session_id AS \"session_id!\",\n                      page.net_title AS \"net_title!\",\n                      page.connections AS \"connections?\",\n                      page.seq AS \"seq!\",\n                      page.kind AS \"kind!\",\n                      page.payload AS \"payload!\",\n                      page.created_at AS \"created_at!\",\n                      moves.moves AS \"moves?\"\n               FROM (SELECT se.session_id,\n                            ns.definition_snapshot->>'title' AS net_title,\n                            ns.definition_snapshot->'connections' AS connections,\n                            se.seq,\n                            se.kind,\n                            se.payload,\n                            se.created_at\n                       FROM session_events se\n                       JOIN net_sessions ns ON ns.id = se.session_id\n                      WHERE se.actor = $1 AND se.kind = 'checkin.added'\n                      ORDER BY se.created_at) AS page\n               LEFT JOIN LATERAL (\n                   SELECT jsonb_agg(jsonb_build_object('seq', fe.seq, 'payload', fe.payload)\n                                    ORDER BY fe.seq) AS moves\n                     FROM session_events fe\n                    WHERE fe.session_id = page.session_id\n                      AND fe.kind = 'frequency.changed'\n                      AND fe.seq <= page.seq\n               ) AS moves ON true\n               ORDER BY page.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "session_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "net_title!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "connections?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "seq!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "seq"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "payload!",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "payload"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "moves?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "317f091c0511a763c9511c5979b06e9ff8a992845ea0b6ecd435822bf5dad605"
+}

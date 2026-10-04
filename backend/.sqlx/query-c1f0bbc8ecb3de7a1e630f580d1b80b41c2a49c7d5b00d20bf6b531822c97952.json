@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO auth_methods (id, account_id, kind, created_at, last_used_at)\n         VALUES ($1, $2, 'magic-link', $3, $3)\n         ON CONFLICT (account_id, kind) DO UPDATE SET last_used_at = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c1f0bbc8ecb3de7a1e630f580d1b80b41c2a49c7d5b00d20bf6b531822c97952"
+}

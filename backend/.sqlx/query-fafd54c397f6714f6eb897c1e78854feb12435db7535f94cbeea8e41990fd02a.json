@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_delivery_configs WHERE definition_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fafd54c397f6714f6eb897c1e78854feb12435db7535f94cbeea8e41990fd02a"
+}

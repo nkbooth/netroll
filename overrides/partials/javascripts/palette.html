@@ -1,0 +1,16 @@
+{#-
+  VENDORED THEME OVERRIDE — Material for MkDocs 9.7.7
+  Upstream: material/templates/partials/javascripts/palette.html
+  From image digest sha256:51b87149d227691486b5f08993d28c65ca7e4990010664b697265b8e6fcd5287
+  (the digest pinned at Containerfile:67).
+
+  Same reason as base.html: upstream ships this as an inline <script> that
+  `script-src 'self'` refuses. It restores the reader's saved palette choice
+  before first paint, so losing it means the dark/light toggle does not
+  survive a page load. The script body is unmodified and interpolates
+  nothing, so it moves to a file verbatim.
+
+  ON A MATERIAL UPGRADE: re-diff this against the new upstream partial and
+  mirror any change into docs/assets/javascripts/md-palette.js.
+-#}
+<script src="{{ 'assets/javascripts/md-palette.js' | url }}"></script>

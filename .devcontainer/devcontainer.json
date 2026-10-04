@@ -1,0 +1,15 @@
+{
+    "name": "netroll",
+    "build": {
+        "dockerfile": "Containerfile"
+    },
+    "remoteUser": "dev",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "ms-vscode.vscode-typescript-next"
+            ]
+        }
+    }
+}

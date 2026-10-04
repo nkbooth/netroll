@@ -1,0 +1,197 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                    o.id AS occurrence_id,\n                    o.scheduled_start_at,\n                    d.id AS definition_id,\n                    d.definition_version,\n                    d.title,\n                    d.description,\n                    d.country,\n                    d.state,\n                    d.grid,\n                    d.net_category,\n                    d.net_type,\n                    d.expected_duration_minutes,\n                    d.link_token,\n                    (SELECT c.id\n                       FROM net_connections c\n                      WHERE c.definition_id = d.id\n                        AND NOT ($3::text IS NULL AND $4::text IS NULL AND $12::text IS NULL)\n                        AND ($3::text IS NULL OR c.band = $3)\n                        AND ($4::text IS NULL OR c.mode = $4)\n                        AND ($12::text IS NULL OR c.kind = $12)\n                      ORDER BY c.position\n                      LIMIT 1) AS \"matched_connection_id?\",\n                    NULL::jsonb AS \"snapshot_connections?\"\n               FROM net_occurrences o\n               JOIN net_definitions d ON d.id = o.definition_id\n               WHERE d.visibility = 'listed'\n                 AND d.archived_at IS NULL\n                 AND o.scheduled_start_at > $1\n                 AND ($2::text IS NULL OR d.title ILIKE $2 ESCAPE '\\')\n                 AND (($3::text IS NULL AND $4::text IS NULL AND $12::text IS NULL)\n                      OR EXISTS (\n                           SELECT 1\n                             FROM net_connections c\n                            WHERE c.definition_id = d.id\n                              AND ($3::text IS NULL OR c.band = $3)\n                              AND ($4::text IS NULL OR c.mode = $4)\n                              AND ($12::text IS NULL OR c.kind = $12)))\n                 AND ($5::text IS NULL OR lower(d.country) = lower($5))\n                 AND ($6::text IS NULL OR lower(d.state) = lower($6))\n                 AND ($7::text IS NULL OR lower(d.grid) = lower($7))\n                 AND ($8::text IS NULL OR d.net_category = $8)\n                 AND ($9::text IS NULL OR d.net_type = $9)\n               ORDER BY\n                    (CASE WHEN $10 = 'time' THEN o.scheduled_start_at END) ASC,\n                    (CASE\n                        WHEN $10 = 'name' THEN d.title\n                        WHEN $10 = 'category' THEN d.net_category\n                        WHEN $10 = 'type' THEN d.net_type\n                    END) ASC,\n                    o.scheduled_start_at ASC,\n                    o.id ASC\n               LIMIT $11",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "occurrence_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_occurrences",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scheduled_start_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_occurrences",
+            "name": "scheduled_start_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "definition_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "definition_version"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "grid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "grid"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "net_category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_category"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "net_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_type"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "expected_duration_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "expected_duration_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "link_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "link_token"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "matched_connection_id?",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "snapshot_connections?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "8c885c9f8d77ce4c32493e51399109a112ff218659f75472d3e063945092509c"
+}

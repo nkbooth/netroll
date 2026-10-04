@@ -1,0 +1,13 @@
+{
+  "name": "netroll-email-build",
+  "private": true,
+  "license": "RPL-1.5",
+  "type": "module",
+  "description": "Build-time MJML -> HTML compiler for NetRoll's transactional email templates. Deliberately a SEPARATE manifest from frontend/: keeping mjml out of frontend/package.json keeps it out of the SPA's `npm sbom` (deploy.yml) and out of the image build's `npm ci` (Containerfile), so no Node mail tooling reaches the runtime image. Its tree is still audited — ci.yml's required `audit` job runs `npm audit` here too.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "mjml": "5.4.0"
+  }
+}

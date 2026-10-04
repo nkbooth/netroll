@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM accounts\n             WHERE deleted_at IS NOT NULL AND deleted_at <= $1 AND disabled_at IS NULL\n             RETURNING avatar_url",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "avatar_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "avatar_url"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ab021d5fb20c2fb87ba19294461584070cfbdca694134f6ae3baa3ef2ea3c4cf"
+}

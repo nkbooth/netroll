@@ -1,0 +1,24 @@
+{#-
+  VENDORED THEME OVERRIDE — Material for MkDocs 9.7.7
+  Upstream: material/templates/partials/javascripts/base.html
+  From image digest sha256:51b87149d227691486b5f08993d28c65ca7e4990010664b697265b8e6fcd5287
+  (the digest pinned at Containerfile:67).
+
+  Upstream ships this bootstrap as an INLINE <script>. Production serves the
+  docs behind a CSP with `script-src 'self'` and no inline allowance, so the
+  browser refuses it — and because it is what defines __md_get, the theme's
+  bundle then dies on `__md_get is not defined` and takes every piece of
+  Material's JavaScript with it, including the routine that gives the primary
+  sidebar a bounded, scrollable height. That is the defect this override
+  exists to fix.
+
+  The script body is unmodified. It is served from a file under `assets/` so
+  it loads as 'self', and the one value upstream interpolates into the source
+  (the scope) is passed as a data attribute instead, which keeps the file
+  byte-identical on every page while preserving upstream's per-page default.
+
+  ON A MATERIAL UPGRADE: re-diff this against the new upstream partial. If the
+  bootstrap gained or changed anything, mirror it into
+  docs/assets/javascripts/md-bootstrap.js.
+-#}
+<script src="{{ 'assets/javascripts/md-bootstrap.js' | url }}" data-md-scope="{{ config.extra.scope | d(base_url) }}"></script>

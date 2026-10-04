@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: Bug report
+description: Something did not work the way it should.
+labels: [bug]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for the report. Callsigns, net names and net descriptions are public in
+              amateur radio and are welcome here — they usually help. Please leave out email
+              addresses, phone numbers, street addresses and session tokens.
+    - type: dropdown
+      id: instance
+      attributes:
+          label: Which instance?
+          options:
+              - The public instance at netroll.n1cck.radio
+              - A self-hosted instance
+              - A local development build
+      validations:
+          required: true
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: What you did, and what the app did in response.
+      validations:
+          required: true
+    - type: textarea
+      id: expected
+      attributes:
+          label: What did you expect instead?
+      validations:
+          required: true
+    - type: input
+      id: callsign
+      attributes:
+          label: Callsign
+          description: Your callsign, if it helps reproduce.
+    - type: checkboxes
+      id: privacy
+      attributes:
+          label: Privacy
+          options:
+              - label: I have left out email addresses, phone numbers, street addresses and session tokens.
+                required: true

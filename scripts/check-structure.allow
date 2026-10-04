@@ -1,0 +1,8 @@
+# Values scripts/check-structure.sh accepts although their class would reject
+# them: `<class> <value>`, one per line, each with its reason. An email value
+# without an `@` admits that domain and its subdomains. The list grows only when
+# the gate fires on something that belongs in the tree.
+email n1cck.radio                  # the project's own sending domain
+email nick@n1cck.us                # the published maintainer contact
+email n1cck@onlyhams.radio         # a commit author address, seeded once from the history
+email martin.donath@squidfunk.com  # the licence attribution NOTICE must carry

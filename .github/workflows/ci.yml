@@ -1,0 +1,677 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: ci
+
+# Quality and security gates, run on every push to any branch and on every
+# pull request: fmt, clippy -D warnings (with the workspace lints), cargo test
+# (incl. the testcontainers-backed Postgres job on the runner's Docker daemon),
+# oxlint, tsc/vite build, vitest, commitlint, gitleaks and the public-tree
+# hygiene scripts, cargo-audit, cargo-deny, and npm audit (frontend/ and
+# tools/email/), plus the byte-exact MJML regeneration check that is the
+# condition of checking the generated email HTML in, `cargo sqlx prepare
+# --check` against a live Postgres when backend/ changed, the docs site's
+# `mkdocs build --strict` at the release build's pinned digest with an offline
+# link check of the result, and a smoke test that boots the release image.
+#
+# Pushes run them because every pushed branch is public the moment it lands:
+# a branch is checked before anyone opens a PR from it. On a PR, the
+# pull_request run is the one the ruleset gates on. No job needs a secret, so
+# a fork's PR runs every gate. The weekly schedule re-checks advisories on
+# main.
+#
+# Lockfiles are law: npm ci (never npm install) and cargo --locked — drift
+# here means a broken pin, so fail loudly.
+
+on:
+    push:
+        branches: ['**']
+    pull_request:
+    # Weekly advisory re-check against main, so a newly published advisory
+    # surfaces without a push or PR. Only the audit job runs on this trigger.
+    # NOTE: GitHub disables cron on repos with no activity for 60 days —
+    # re-enable from the Actions tab if that ever happens.
+    schedule:
+        - cron: '17 5 * * 1'
+
+# A re-push cancels its own stale run; the event name keeps a branch's push run
+# and its PR run from cancelling each other.
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+env:
+    GITLEAKS_VERSION: 8.30.1
+    GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
+# Job names are load-bearing: the branch ruleset `main-ci-gate` requires the
+# six checks backend/frontend/commitlint/gitleaks/audit/deploy-smoke by name —
+# renaming any of them silently un-gates merges, and a new job gates nothing
+# until it is added to the ruleset and to the want list in
+# scripts/github-settings.sh. Skipped-on-schedule is fine (the ruleset
+# evaluates PR events); renamed is not. The `e2e` job is deliberately NOT in
+# that required set — it is informational until the ruleset is amended to
+# require it (see the job's own note).
+#
+# A branch deletion also fires `push`, with nothing to check, so every job
+# skips it.
+jobs:
+    backend:
+        # Schedule runs are advisory-only (audit job) — an unchanged main
+        # gains nothing from rebuilding, and commitlint has no PR context.
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        env:
+            # Compile-time-checked sqlx queries resolve against the committed
+            # .sqlx/ cache for fmt/clippy/test — those never need a live
+            # database. A stale cache fails the build as an opaque compile
+            # error, and it does so in `cargo clippy` below, which runs BEFORE
+            # the `cargo sqlx prepare --check` step and stops the job — so do
+            # not read that step as the thing that names this failure. What it
+            # names is the drift an offline compile cannot see at all: a cache
+            # entry that no longer matches the live schema but still satisfies
+            # the macro (the "potentially unused" class). That step alone
+            # unsets this (step-level env, so the job-level default is
+            # untouched). Regenerate with `cargo sqlx prepare --workspace`.
+            SQLX_OFFLINE: 'true'
+        # Only `cargo sqlx prepare --check` talks to this — `prepare` re-runs
+        # `cargo check` with SQLX_OFFLINE=false and needs the migrated schema
+        # to describe every query against. Same major as production
+        # (compose.yaml, deploy/compose.prod.yml). A job-level service cannot
+        # be conditional, so a PR that never touches backend/ still pays this
+        # container's pull and start; the expensive parts (sqlx-cli, the
+        # migrations, the second `cargo check`) sit behind the step gate below.
+        services:
+            postgres:
+                image: postgres:18
+                env:
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+            # ubuntu-latest ships with ~14GB free on the root disk after its
+            # preinstalled toolchains (.NET, Android SDK, GHC, CodeQL) — none
+            # of which this job uses. The Rust build alone (sqlx/tonic/rustls/
+            # testcontainers/bollard) fills enough of that to starve Docker's
+            # overlay storage mid-pull, so `cargo test`'s testcontainers-backed
+            # Postgres container fails with ENOSPC. Clearing this reclaims
+            # 20-30GB before the build starts. `|| true` per path: images vary
+            # in what's preinstalled, and a missing path isn't an error here.
+            - name: free disk space
+              run: |
+                  sudo rm -rf /usr/share/dotnet || true
+                  sudo rm -rf /usr/local/lib/android || true
+                  sudo rm -rf /opt/ghc || true
+                  sudo rm -rf /usr/local/.ghcup || true
+                  sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+                  df -h /
+
+            # Same channel as backend/rust-toolchain.toml; components made
+            # explicit because the toolchain file does not list them and the
+            # runner's rustup defaults to the minimal profile.
+            - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+              with:
+                  toolchain: "1.97"
+                  components: rustfmt, clippy
+
+            - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              with:
+                  workspaces: backend
+
+            - name: cargo fmt
+              run: cargo fmt --manifest-path backend/Cargo.toml --all -- --check
+
+            - name: cargo clippy
+              run: cargo clippy --manifest-path backend/Cargo.toml --workspace --all-targets --locked -- -D warnings
+
+            # The CSP derived-requirements test
+            # (crates/netroll-app/tests/csp_policy.rs) reads
+            # frontend/dist/index.html — the BUILT shell, which is gitignored —
+            # and FAILS when it is absent rather than skipping, so this job has
+            # to build the frontend before it tests. Placed after fmt and clippy
+            # on purpose: those are this job's own diagnostics and should report
+            # first, and a broken frontend build is already the `frontend` job's
+            # to report. Steps in `backend`, never a new job: the `main-ci-gate`
+            # ruleset requires `backend` by name (see the note above `jobs:`).
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: npm ci (frontend, for the CSP derivation test)
+              working-directory: frontend
+              run: npm ci
+
+            - name: npm run build (frontend, for the CSP derivation test)
+              working-directory: frontend
+              run: npm run build
+
+            # Runs the testcontainers-backed Postgres smoke test against the
+            # runner's preinstalled Docker daemon — never skipped.
+            - name: cargo test
+              run: cargo test --manifest-path backend/Cargo.toml --workspace --locked
+
+            # The four steps below run only when the change touched
+            # backend/ — .sqlx/ cannot drift on a change that does not — so a
+            # frontend-only change pays none of the cost. This is a STEP-LEVEL gate
+            # on purpose and must never become a job-level `paths:` filter: a
+            # skipped required job never reports its check and blocks the merge
+            # outright, the same class of trap as the names in the note above
+            # `jobs:`. The gate is mechanical and exhaustive over every change
+            # that can break the invariant (.sqlx/, the queries, the migrations
+            # and Cargo.lock all live under backend/).
+            #
+            # GitHub has no `paths` for steps and the checkout above is depth-1
+            # (on a PR, HEAD is the merge commit, with no parents present), so
+            # the diff is computed by hand: fetch the base the event recorded
+            # (the PR's base tip, or a push's `before`),
+            # then a two-dot TREE diff — three-dot needs a merge base, which two
+            # shallow fetches never share. `base.sha` is the base tip AT EVENT
+            # CREATION, not necessarily the merge ref's base parent, so this
+            # span also lists whatever else reached main in between: the gate is
+            # over-inclusive, never under-inclusive, which is the direction to
+            # err in. No third-party paths-filter action for one conditional.
+            #
+            # Three things this predicate got wrong once, all silent false
+            # negatives that skipped the check on a PR that DID touch backend/:
+            #   - `printf … | grep -q` fails OPEN. `grep -q` exits at the first
+            #     match, `printf` then dies writing to a closed pipe, and under
+            #     `pipefail` the pipeline takes that non-zero status, so the
+            #     `if` runs its else branch. Reproduced with a >64KiB path list.
+            #     A herestring has no pipe and no such status.
+            #   - rename detection prints only a rename's DESTINATION, so moving
+            #     a file out of backend/ read "unchanged" while .sqlx/ gained an
+            #     orphaned entry. `--no-renames` lists both sides.
+            #   - `core.quotePath` (default true) emits "backend/caf\303\251.rs"
+            #     for a non-ASCII name, and the leading quote defeats `^backend/`.
+            # A push that creates a branch has an all-zero `before`, and a
+            # force-push's `before` may no longer be fetchable; with no base to
+            # diff against, the step answers "changed", the same direction as
+            # above. `set -e` still fails the step closed on a failed diff.
+            - name: did this change touch backend/?
+              id: backend_changed
+              env:
+                  PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  PUSH_BEFORE: ${{ github.event.before }}
+              run: |
+                  set -euo pipefail
+                  if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$PUSH_BEFORE"; fi
+                  if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$BASE_SHA"; then
+                      echo "changed=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  changed_files="$(git -c core.quotePath=false diff --name-only --no-renames "$BASE_SHA" HEAD)"
+                  if grep -q '^backend/' <<<"$changed_files"; then
+                      echo "changed=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "changed=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            # A build-from-source `cargo install`, deliberately NOT
+            # `taiki-e/install-action` like cargo-audit/cargo-cyclonedx in the
+            # audit job: sqlx-cli is absent from that action's managed manifest,
+            # so it would silently fall back to cargo-binstall and build from
+            # source anyway — the same cost with a misleading line. Do not
+            # "fix" the inconsistency. rust-cache above caches ~/.cargo/bin, so
+            # this is a once-per-cache-key cost, not a per-run one. sqlx-cli is
+            # needed regardless of the check: the app migrates at boot with no
+            # migrate-and-exit path, so `sqlx migrate run` is the only clean way
+            # to bring the service database up to schema.
+            - name: install sqlx-cli
+              if: steps.backend_changed.outputs.changed == 'true'
+              run: cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features postgres,rustls
+
+            - name: sqlx migrate run (service database)
+              if: steps.backend_changed.outputs.changed == 'true'
+              working-directory: backend
+              env:
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+              run: cargo sqlx migrate run --source migrations
+
+            # `--check` exits 1 naming the drift when a committed .sqlx/ entry
+            # no longer matches what the live schema says about its query —
+            # the failure the SQLX_OFFLINE compile otherwise reports as an
+            # opaque type error. Step-level env only; the job stays offline.
+            # `-- --all-targets` is load-bearing: `prepare` runs a plain
+            # `cargo check`, which never compiles test targets, and
+            # `pg_repos.rs` carries `sqlx::query!` macros of its own — without
+            # it their cache entries are reported "potentially unused" and a
+            # stale one passes this check only to break `cargo test`'s compile
+            # (measured 2026-09-07: two such entries).
+            - name: cargo sqlx prepare --check
+              if: steps.backend_changed.outputs.changed == 'true'
+              working-directory: backend
+              env:
+                  SQLX_OFFLINE: 'false'
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+              run: cargo sqlx prepare --check --workspace -- --all-targets
+
+    frontend:
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: frontend
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: npm ci
+              run: npm ci
+
+            - name: oxlint
+              run: npx --no-install oxlint
+
+            - name: build (tsc -b + vite build)
+              run: npm run build
+
+            - name: vitest
+              run: npm test
+
+            # MJML compiles to HTML at build time and the output is CHECKED IN,
+            # so the artifact can drift from its .mjml source; a check that
+            # regeneration is a byte-exact no-op is what makes committing the
+            # output sound. The script is what a developer runs locally, invoked
+            # here verbatim so the two cannot diverge.
+            #
+            # A STEP in this job, not a job of its own, and that is the whole
+            # point: `frontend` is one of the checks the `main-ci-gate`
+            # ruleset requires BY NAME, so this gates merges from its first run.
+            # A new `mjml-regen` job would sit exactly where `e2e` sits below —
+            # real, running on every PR, and gating nothing until an out-of-repo
+            # ops action adds it to the ruleset.
+            #
+            # `working-directory` is overridden because the job defaults to
+            # frontend/ and this owns tools/email plus the two crate template
+            # directories.
+            - name: MJML regeneration is a no-op
+              working-directory: ${{ github.workspace }}
+              run: tools/email/verify-regeneration.sh
+
+            # The docs site is built by the Containerfile's `docs` stage at
+            # RELEASE time; this runs the same build on the PR. A page missing
+            # from the explicit nav is reported by mkdocs at INFO, which
+            # `--strict` ignores, so `validation.nav.omitted_files: warn` in
+            # mkdocs.yml is what makes that case fail at all. Same image, digest
+            # and flags as the Containerfile, but NOT the same build context:
+            # the release stage copies exactly mkdocs.yml, docs/ and overrides/
+            # into a writable /src, while this mounts the whole repo read-only
+            # (hence `--site-dir`, on a writable mount the link check below
+            # reads), so a new top-level docs input can build green here and
+            # break the release.
+            #
+            # The digest is pinned in two places, here and the Containerfile's
+            # `FROM … AS docs`; bump both together or the PR check and the
+            # release build become two definitions of the docs build. Never a
+            # floating `pip install mkdocs` for that reason, and never a
+            # job-level `container:`, which would strand the Node steps above
+            # inside an image that has no Node.
+            #
+            # A STEP in this job, not a job of its own (see the note above
+            # `jobs:`). Not gated on docs/** changing: the build is seconds, and
+            # mkdocs.yml's nav, overrides/ and a vendored asset path can each
+            # break it from a file a docs/** filter would miss. The repo root is
+            # mounted because those inputs all live there. Runs even when an
+            # earlier step has failed: as the last step it would otherwise be
+            # skipped by a broken vitest spec.
+            - name: mkdocs build --strict
+              id: mkdocs
+              if: ${{ !cancelled() }}
+              working-directory: ${{ github.workspace }}
+              run: |
+                  docker run --rm -v "$PWD":/docs:ro -v "$RUNNER_TEMP/site":/site \
+                    docker.io/squidfunk/mkdocs-material@sha256:51b87149d227691486b5f08993d28c65ca7e4990010664b697265b8e6fcd5287 \
+                    build --strict --site-dir /site
+
+            # `--strict` already fails on a broken link or anchor written in
+            # Markdown; it does not see the links templates and raw HTML emit.
+            # This checks every internal link and fragment in the BUILT site,
+            # offline. External links are out: they need the network and fail
+            # for reasons that are not ours. `--index-files` resolves a
+            # directory URL to its index.html, without which every fragment on
+            # one reads as missing.
+            - name: link check (built docs site)
+              if: ${{ !cancelled() && steps.mkdocs.outcome == 'success' }}
+              run: |
+                  docker run --rm -v "$RUNNER_TEMP/site":/site:ro \
+                    docker.io/lycheeverse/lychee@sha256:3367d6734d8e1c7cb7bb5c05d5302207cc4367a3fa67b8ae656c207a11ece7b2 \
+                    --offline --include-fragments --root-dir /site --index-files index.html --no-progress /site
+
+    # NON-REQUIRED, informational lane. Deliberately NOT one of the
+    # ruleset-gated checks (see the note above `jobs:`) — a red
+    # `e2e` must NOT block merges until the `main-ci-gate` branch ruleset is
+    # amended to require it. Promote it to required only after adding `e2e` to
+    # that ruleset. The spec drives the real browser
+    # client (real chromium) against the built SPA served by `vite preview`,
+    # mocking the transport at the browser boundary; wiring the full Rust +
+    # Postgres + auth stack behind it is a documented follow-up.
+    e2e:
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: frontend
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: npm ci
+              run: npm ci
+
+            # Chromium + its OS libraries (the runner has root; the dev
+            # container does not, so this lane is CI-run only for now).
+            - name: install Playwright chromium
+              run: npx playwright install --with-deps chromium
+
+            - name: playwright test
+              run: npm run test:e2e
+
+    commitlint:
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        # The action lists the PR's commits via the API (not just the local
+        # clone) when triggered by `pull_request`; the job-level default
+        # `contents: read` (from the workflow-level block above) isn't enough
+        # and the call 403s without this.
+        permissions:
+            contents: read
+            pull-requests: read
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+
+            # configFile is explicit: the action's default is a `.mjs` path it
+            # only falls back from to find this repo's `.cjs`.
+            - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
+              with:
+                  configFile: ./commitlint.config.cjs
+
+            # The PR TITLE, not just the commits. This repo squash-merges, so
+            # the title becomes the subject of the ONLY commit that reaches
+            # main — and it is the commit release-please parses. The action
+            # above lints the branch's commits, every one of which can be
+            # perfectly conventional while the title is not; nothing then
+            # fails, main gains an unparseable subject, and the release
+            # silently does not happen. That has happened once already: a
+            # non-conventional PR title reached main and release-please ran,
+            # succeeded, and found nothing releasable.
+            #
+            # This is a STEP in the existing job, deliberately not a job of its
+            # own: the `main-ci-gate` ruleset requires its checks BY NAME, so
+            # a new job would not gate merges and could fail with nothing
+            # stopping the merge — see the note above `jobs:`.
+            #
+            # Run through the commit-msg hook's own image, so hook, action and
+            # title step apply one commitlint (the action bundles the same 19
+            # line). Not `npx`: with no lockfile it takes npm's latest, and a
+            # pinned 19.x under npx cannot resolve its own preset (measured).
+            - name: commitlint the PR title
+              if: github.event_name == 'pull_request'
+              env:
+                  PR_TITLE: ${{ github.event.pull_request.title }}
+              run: |
+                  printf '%s\n' "$PR_TITLE" | docker run --rm -i -v "$PWD":/repo:ro -w /repo \
+                    docker.io/commitlint/commitlint:19.9.1 --config commitlint.config.cjs --verbose
+
+    gitleaks:
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+
+            # Same pinned binary + checksum as the devcontainer and the host
+            # pre-commit hook — one scanner, one behavior. Full-history scan.
+            - name: install gitleaks
+              run: |
+                  curl -sSfL -o gitleaks.tar.gz \
+                      "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+                  echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+                  sudo tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks
+                  rm gitleaks.tar.gz
+
+            - name: gitleaks
+              run: gitleaks git --redact --verbose
+
+            # The public-tree hygiene gates (each script's header says what it
+            # catches and what it does not), and the self-test that plants a
+            # violation for every rule and must see it fail. Steps in this
+            # required job, not a job of their own (see the note above `jobs:`);
+            # each runs even when an earlier one failed, so one push reports
+            # every class of problem at once.
+            - name: lint-comments
+              if: ${{ !cancelled() }}
+              run: scripts/lint-comments.sh
+
+            - name: license notices
+              if: ${{ !cancelled() }}
+              run: scripts/license-notices.sh check
+
+            - name: check-structure
+              if: ${{ !cancelled() }}
+              run: scripts/check-structure.sh
+
+            # The pre-push hook's per-commit scan again, because `--no-verify`
+            # skips the hook: a value added and removed inside one push is in
+            # public history though the final tree is clean. A PR's range is
+            # its commits; a push's is what it added; a new branch's, or a
+            # force push's whose old tip is gone, is what no other branch on
+            # origin has.
+            - name: check-structure over the pushed commits
+              if: ${{ !cancelled() }}
+              env:
+                  EVENT: ${{ github.event_name }}
+                  BEFORE: ${{ github.event.before }}
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: |
+                  set -euo pipefail
+                  if [[ "$EVENT" == pull_request ]]; then
+                      range=("$BASE_SHA..$HEAD_SHA")
+                  elif [[ ! "$BEFORE" =~ ^0+$ ]] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+                      range=("$BEFORE..$GITHUB_SHA")
+                  else
+                      mapfile -t others < <(git for-each-ref --format='%(refname)' refs/remotes/origin \
+                          | grep -vxF -e "refs/remotes/origin/$GITHUB_REF_NAME" -e refs/remotes/origin/HEAD)
+                      range=("$GITHUB_SHA" --not "${others[@]}")
+                  fi
+                  scripts/check-structure.sh --range "${range[@]}"
+
+            - name: gate self-test
+              if: ${{ !cancelled() }}
+              run: |
+                  scripts/test-gates.sh
+                  scripts/test-github-settings.sh
+                  scripts/test-license-notices.sh
+
+    # Validates both compose files and boots the release image against
+    # Postgres with the variables a self-hoster sets. It runs the image with
+    # `docker run`, not through deploy/compose.prod.yml, whose wiring is only
+    # validated. Its own job because it needs a Postgres service and an image
+    # build that belong in no other.
+    deploy-smoke:
+        if: github.event_name != 'schedule' && !github.event.deleted
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:18
+                env:
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+            # `config -q` exits 0 while warning that a variable is unset and
+            # will be an empty string, which is a broken deploy all the same,
+            # so any output at all fails the step. The production template
+            # needs secrets from 1Password, so the dev template stands in, plus
+            # the one variable only production sets.
+            - name: compose files are valid
+              run: |
+                  set -euo pipefail
+                  tmp="$(mktemp -d)"
+                  cp deploy/compose.prod.yml "$tmp/compose.yml"
+                  cp .env.template "$tmp/.env"
+                  echo 'POSTGRES_PASSWORD=smoke-only' >> "$tmp/.env"
+                  # A failing command must not exit before its output is shown.
+                  status=0
+                  docker compose -f "$tmp/compose.yml" --env-file "$tmp/.env" config -q > "$tmp/out" 2>&1 || status=$?
+                  docker compose -f compose.yaml config -q >> "$tmp/out" 2>&1 || status=$?
+                  if [[ "$status" -ne 0 || -s "$tmp/out" ]]; then cat "$tmp/out"; exit 1; fi
+
+            - name: env templates match the deploy README
+              run: scripts/check-env-docs.sh
+
+            - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+            # Reads the release build's cache and never writes it, so a branch
+            # cannot evict main's layers.
+            - name: build the release image
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+              with:
+                  context: .
+                  file: Containerfile
+                  push: false
+                  load: true
+                  tags: netroll:smoke
+                  cache-from: type=gha
+
+            # The body is the check, not the status: an unmatched path is
+            # answered 200 by the SPA shell. `ok` means the binary booted,
+            # migrated the schema and reached the database.
+            - name: boot the image and wait for a healthy probe
+              run: |
+                  docker run -d --name netroll-smoke --network host \
+                    -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
+                    -e SMTP_HOST=localhost -e SMTP_PORT=1025 \
+                    -e MAIL_FROM=no-reply@netroll.invalid \
+                    -e PUBLIC_BASE_URL=http://localhost:3000 \
+                    netroll:smoke
+                  for _ in $(seq 60); do
+                      if curl -fs http://localhost:3000/healthz | jq -e '.status == "ok"' > /dev/null; then exit 0; fi
+                      # A container that exited will never answer; stop waiting.
+                      [[ "$(docker inspect -f '{{.State.Running}}' netroll-smoke)" == true ]] || break
+                      sleep 2
+                  done
+                  docker logs netroll-smoke
+                  exit 1
+
+    audit:
+        if: ${{ !github.event.deleted }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+              with:
+                  tool: cargo-audit
+
+            - name: cargo audit
+              working-directory: backend
+              run: cargo audit
+
+            # Advisories again, plus the licence allow list, crate sources and
+            # duplicate versions, all from backend/deny.toml. Here rather than
+            # in `backend` so the weekly schedule re-checks advisories too.
+            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+              with:
+                  tool: cargo-deny@0.20.2
+
+            - name: cargo deny
+              working-directory: backend
+              run: cargo deny --locked check
+
+            # `ubuntu-latest`'s preinstalled npm is old enough to still call
+            # the `/security/audits/quick` endpoint npm has now retired,
+            # which 400s with a misleading "Invalid package tree" regardless
+            # of lockfile validity (confirmed clean locally on npm 11).
+            # `frontend`/`e2e` already pin Node 22 for this reason; `audit`
+            # never needed setup-node until the old endpoint started failing.
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: 22
+
+            - name: npm install -g npm@latest
+              run: npm install -g npm@latest
+
+            # Default threshold: fail on ANY advisory (audit is clean as of
+            # 2026-07-15). Prefer --omit=dev over raising the level if a
+            # dev-only unfixable advisory ever blocks.
+            - name: npm audit
+              working-directory: frontend
+              run: npm audit
+
+            # The MJML email build tool is a SEPARATE manifest from
+            # frontend/ on purpose — it stays out of the SPA's `npm sbom`
+            # (deploy.yml) and out of the image build's `npm ci`
+            # (Containerfile), so no Node mail tooling reaches the runtime
+            # image. A separate manifest is not audited by the step above, so it
+            # gets its own step in this SAME already-required job. Same
+            # zero-advisory threshold; no new job, no ruleset change.
+            - name: npm audit (email build tool)
+              working-directory: tools/email
+              run: npm audit
+
+            # SBOM freshness (scheduled runs only): prove both SBOMs are
+            # still producible from main's current lockfiles — the same
+            # invocations the release build uses in deploy.yml.
+            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+              if: github.event_name == 'schedule'
+              with:
+                  tool: cargo-cyclonedx
+
+            # cargo-cyclonedx (0.5.9) has no --locked, so guard the claim
+            # "producible from main's current lockfiles" directly: fail if
+            # generation rewrote Cargo.lock.
+            - name: backend SBOM freshness
+              if: github.event_name == 'schedule'
+              working-directory: backend
+              run: |
+                  lock_before="$(sha256sum Cargo.lock)"
+                  cargo cyclonedx --format json --spec-version 1.5 -q
+                  echo "$lock_before" | sha256sum -c -
+                  for f in crates/*/*.cdx.json; do
+                      jq -e '.components | length > 0' "$f" > /dev/null
+                  done
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              if: github.event_name == 'schedule'
+              with:
+                  node-version: 22
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: frontend SBOM freshness
+              if: github.event_name == 'schedule'
+              working-directory: frontend
+              run: |
+                  npm ci
+                  npm sbom --sbom-format cyclonedx | jq -e '.components | length > 0' > /dev/null

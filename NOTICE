@@ -1,0 +1,71 @@
+NetRoll is licensed under the Reciprocal Public License 1.5 (SPDX: RPL-1.5).
+See LICENSE; LICENSE.md is the same text formatted for reading.
+
+LICENSE is the canonical RPL-1.5 text with the two alterations its Section 7.1
+permits while keeping the name: Section 13.8 names Connecticut law and the
+Judicial District of New London as venue, and EXHIBIT A defines the License
+Notice as the two-line SPDX identifier and copyright line that heads every
+source file. EXHIBIT B defines no User-Visible Attribution Notice.
+
+The files below are third-party works vendored into this repository, verbatim
+except where a Note below says otherwise. Each is under the MIT License,
+reproduced once at the end of this file, except CODE_OF_CONDUCT.md as noted.
+
+--------------------------------------------------------------------------------
+
+mermaid 11.16.1
+  File:      docs/assets/javascripts/mermaid-11.16.1.min.js
+  Upstream:  npm package `mermaid`, dist/mermaid.min.js
+             https://registry.npmjs.org/mermaid/-/mermaid-11.16.1.tgz
+  SHA-256:   18327bef70d96fb505fe7287d9f6a7362ebf07ff6576ddfaffb1a06f3e1a2954
+  License:   MIT
+  Copyright: Copyright (c) 2014 - 2022 Knut Sveidqvist
+             (from the LICENSE file inside the 11.16.1 tarball)
+
+Material for MkDocs 9.7.7
+  Files:     overrides/partials/javascripts/base.html
+             overrides/partials/javascripts/content.html
+             overrides/partials/javascripts/palette.html
+             docs/assets/javascripts/md-bootstrap.js
+             docs/assets/javascripts/md-content.js
+             docs/assets/javascripts/md-content-tabs.js
+             docs/assets/javascripts/md-palette.js
+  Upstream:  material/templates/partials/javascripts/{base,content,palette}.html
+             https://github.com/squidfunk/mkdocs-material/tree/9.7.7/material/templates/partials/javascripts
+  License:   MIT
+  Copyright: Copyright (c) 2016-2025 Martin Donath <martin.donath@squidfunk.com>
+             (https://github.com/squidfunk/mkdocs-material/blob/9.7.7/LICENSE)
+  Note:      the inline <script> bodies are unmodified; they were moved to
+             the md-*.js files above so the documentation site can be served
+             under a Content-Security-Policy without an inline-script allowance.
+
+Contributor Covenant 2.1
+  File:      CODE_OF_CONDUCT.md
+  Upstream:  https://www.contributor-covenant.org/version/2/1/code_of_conduct.md
+  License:   CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Copyright: Organization for Ethical Source
+  Note:      the enforcement contact address is this project's; the text is
+             otherwise unmodified. The file carries its own attribution
+             footer, which is what the licence requires.
+
+--------------------------------------------------------------------------------
+
+The MIT License (MIT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

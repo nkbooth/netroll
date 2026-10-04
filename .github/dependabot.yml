@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Dependabot version updates for the GitHub Actions ecosystem ONLY.
+#
+# Why not cargo or npm here: those trees are audited on a schedule instead
+# (ci.yml's `audit` job runs `cargo audit` and `npm audit` weekly), and a
+# version-update stream for two lockfiles this size is PR fatigue with no
+# security signal. Dependabot SECURITY updates for cargo and npm are a
+# repository toggle, not an entry in this file — scripts/github-settings.sh
+# turns them on (`automated-security-fixes`).
+#
+# Why `ci` and not `deps`: commitlint extends config-conventional, whose
+# `type-enum` has no `deps` type, so a `deps:` subject would red the
+# commitlint check and the PR could never auto-merge. `include: scope`
+# makes the subject `ci(deps): bump …`, which release-please-config.json
+# hides from the changelog — a bumped action is not a user-visible change.
+#
+# No `groups:` on purpose — a grouped PR reports the highest update-type in
+# the group, so one major bump would stall every patch beside it.
+version: 2
+updates:
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+      commit-message:
+          prefix: ci
+          include: scope

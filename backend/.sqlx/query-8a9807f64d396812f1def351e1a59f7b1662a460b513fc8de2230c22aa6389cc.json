@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_occurrences\n             WHERE definition_id = $1 AND scheduled_start_at > $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a9807f64d396812f1def351e1a59f7b1662a460b513fc8de2230c22aa6389cc"
+}

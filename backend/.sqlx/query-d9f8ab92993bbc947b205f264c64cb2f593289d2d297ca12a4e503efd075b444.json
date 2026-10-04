@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT page.id AS \"id!\",\n                      page.session_id AS \"session_id!\",\n                      page.seq AS \"seq!\",\n                      page.created_at AS \"created_at!\",\n                      page.payload AS \"payload!\",\n                      page.net_title AS \"net_title!\",\n                      page.connections AS \"connections?\",\n                      moves.moves AS \"moves?\"\n               FROM (SELECT se.id,\n                            se.session_id,\n                            se.seq,\n                            se.created_at,\n                            se.payload,\n                            ns.definition_snapshot->>'title' AS net_title,\n                            ns.definition_snapshot->'connections' AS connections\n                       FROM session_events se\n                       JOIN net_sessions ns ON ns.id = se.session_id\n                      WHERE se.actor = $1\n                        AND se.kind = 'checkin.added'\n                        AND se.payload->>'source' = 'self'\n                        AND jsonb_typeof(ns.definition_snapshot->'connections') = 'array'\n                        AND jsonb_array_length(ns.definition_snapshot->'connections') > 0\n                        AND ($2::timestamptz IS NULL OR (se.created_at, se.id) < ($2, $3))\n                      ORDER BY se.created_at DESC, se.id DESC\n                      LIMIT $4) AS page\n               LEFT JOIN LATERAL (\n                   SELECT jsonb_agg(jsonb_build_object('seq', fe.seq, 'payload', fe.payload)\n                                    ORDER BY fe.seq) AS moves\n                     FROM session_events fe\n                    WHERE fe.session_id = page.session_id\n                      AND fe.kind = 'frequency.changed'\n                      AND fe.seq <= page.seq\n               ) AS moves ON true\n               ORDER BY page.created_at DESC, page.id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "seq!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "seq"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "payload!",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "session_events",
+            "name": "payload"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "net_title!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "connections?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "moves?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d9f8ab92993bbc947b205f264c64cb2f593289d2d297ca12a4e503efd075b444"
+}

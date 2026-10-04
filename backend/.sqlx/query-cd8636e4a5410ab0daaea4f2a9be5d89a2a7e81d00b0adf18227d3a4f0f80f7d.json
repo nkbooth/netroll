@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO net_session_roles (net_session_id, account_id, role, granted_by)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (net_session_id, account_id)\n             DO UPDATE SET role = EXCLUDED.role, granted_by = EXCLUDED.granted_by",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd8636e4a5410ab0daaea4f2a9be5d89a2a7e81d00b0adf18227d3a4f0f80f7d"
+}

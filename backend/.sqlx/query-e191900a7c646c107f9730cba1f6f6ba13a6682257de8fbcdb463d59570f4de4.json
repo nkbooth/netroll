@@ -1,0 +1,186 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                    s.id AS occurrence_id,\n                    s.started_at AS \"scheduled_start_at!\",\n                    d.id AS definition_id,\n                    d.definition_version,\n                    d.title,\n                    d.description,\n                    d.country,\n                    d.state,\n                    d.grid,\n                    d.net_category,\n                    d.net_type,\n                    d.expected_duration_minutes,\n                    d.link_token,\n                    NULL::uuid AS \"matched_connection_id?\",\n                    s.definition_snapshot->'connections' AS \"snapshot_connections?\"\n               FROM net_sessions s\n               JOIN net_definitions d ON d.id = s.definition_id\n               WHERE s.lifecycle = 'live'\n                 AND d.visibility = 'listed'\n                 AND d.archived_at IS NULL\n               ORDER BY s.started_at ASC, s.id ASC\n               LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "occurrence_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scheduled_start_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "definition_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "definition_version"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "grid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "grid"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "net_category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_category"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "net_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_type"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "expected_duration_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "expected_duration_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "link_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "link_token"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "matched_connection_id?",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "snapshot_connections?",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "e191900a7c646c107f9730cba1f6f6ba13a6682257de8fbcdb463d59570f4de4"
+}

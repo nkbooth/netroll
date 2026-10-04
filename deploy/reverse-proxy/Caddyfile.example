@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Example reverse proxy for a self-hosted NetRoll instance (Caddy 2).
+#
+# Copy it and replace three things, then validate before you reload:
+#
+#   1. `netroll.example.com`   — the public hostname Caddy serves.
+#   2. `you@example.com`       — the ACME contact address.
+#   3. `http://localhost:8080` — the upstream, host AND port. `localhost` is
+#      right only when Caddy runs on the same machine as the compose stack;
+#      otherwise it is the address of the host running the app. `8080` is the
+#      host port the quickstart's compose file publishes; if you changed that
+#      mapping, change this. (A bracketed placeholder here would fail
+#      `caddy validate`, which is why a concrete value is shipped.)
+#
+#   caddy validate --config Caddyfile --adapter caddyfile
+#
+# Caddy obtains and renews the TLS certificate on its own.
+#
+# WHAT THIS FILE DOES NOT SET, AND WHY: Content-Security-Policy. The app sends
+# its own on every HTML response, derived from PUBLIC_BASE_URL and
+# PLAUSIBLE_SCRIPT_HOST (docs/reference/configuration.md, "Content Security
+# Policy"). Two CSP headers on one response do not merge: the browser enforces
+# both, and what results is their INTERSECTION — the most restrictive reading of
+# the two — so a policy set here would silently break the app the first time it
+# disagreed with the app's. Transport headers belong to the proxy; content
+# headers belong to the app. Do not strip or rewrite the app's headers either
+# (no `-Content-Security-Policy`, no `>` on a header the app sends).
+#
+# HSTS deliberately omits `preload`. Preload is submitted at the apex domain and
+# would bind every subdomain you have, not just the one served here.
+
+netroll.example.com {
+	# The ACME contact: where renewal-failure notices go.
+	tls you@example.com
+
+	# Transport-level headers the app does not set for itself. `>` sets rather
+	# than adds, so an upstream that ever emits one of these gets one copy, not
+	# two.
+	header {
+		>Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		>X-Content-Type-Options "nosniff"
+		>Referrer-Policy "strict-origin-when-cross-origin"
+		>Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+		# The app's CSP already says `frame-ancestors 'none'`; this is the same
+		# rule for browsers that predate it, and is additive-safe beside a CSP.
+		>X-Frame-Options "DENY"
+	}
+
+	# A net's permalink carries its access token in the URL, so it is kept out
+	# of search indexes: an indexed URL keeps resolving after the owner makes the
+	# net Unlisted. The app sets the same rule from JavaScript; this header
+	# covers a crawler that never runs it.
+	@netroll_permalink path /nets/t/*
+	header @netroll_permalink >X-Robots-Tag "noindex, nofollow"
+
+	# The upstream: the host running the compose stack, and the host port it
+	# publishes (8080 in the quickstart). Item 3 of the edit list at the top.
+	reverse_proxy http://localhost:8080 {
+		# The app's rate limiters key on the client address; without this every
+		# request would appear to come from the proxy itself.
+		#
+		# THE APP MUST BE REACHABLE ONLY THROUGH THIS PROXY. It trusts
+		# X-Forwarded-For and X-Real-Ip as the client address, so any client
+		# that can reach the published port directly supplies its own and
+		# defeats every rate limiter. The quickstart's compose publishes 8080 on
+		# every interface of the host: bind it to loopback instead when Caddy is
+		# on the same machine (`'127.0.0.1:8080:3000'`), or firewall the port to
+		# the proxy's address when it is not.
+		header_up X-Real-Ip {remote_host}
+	}
+}

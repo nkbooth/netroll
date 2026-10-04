@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Local development stack for NetRoll by N1CCK — run with `podman compose up -d`
+# on the host. The app itself runs from the devcontainer / `cargo run`; only
+# backing services live here.
+#
+# Valkey is deliberately absent: rate limiting is in-app and sessions
+# live in Postgres. Add it only when a feature actually needs it.
+
+services:
+    postgres:
+        image: postgres:18
+        container_name: netroll-postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: netroll
+            POSTGRES_PASSWORD: netroll-dev
+            POSTGRES_DB: netroll
+        ports:
+            - '5432:5432'
+        volumes:
+            # postgres 18+ images store data in a version-specific
+            # subdirectory under a single /var/lib/postgresql mount
+            # (docker-library/postgres#1259) — mounting at the old
+            # .../data path makes the entrypoint refuse to start.
+            - netroll-pgdata:/var/lib/postgresql
+
+    # Dev-only mail catcher: the app sends real SMTP to :1025, delivered mail
+    # is browsable at http://localhost:8025. Never deployed.
+    mailpit:
+        image: axllent/mailpit
+        container_name: netroll-mailpit
+        restart: unless-stopped
+        ports:
+            - '1025:1025'
+            - '8025:8025'
+
+volumes:
+    netroll-pgdata:

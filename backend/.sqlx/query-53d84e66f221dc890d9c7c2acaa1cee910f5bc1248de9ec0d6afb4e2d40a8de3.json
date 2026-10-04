@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_schedules WHERE definition_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "53d84e66f221dc890d9c7c2acaa1cee910f5bc1248de9ec0d6afb4e2d40a8de3"
+}

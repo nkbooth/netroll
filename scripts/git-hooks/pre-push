@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Host-side pre-push hook: every branch pushed here is public the moment it
+# lands, so what leaves this clone is checked first. Per outgoing ref:
+#
+#   - a ref under refs/heads/wip/ is refused; renaming it to pr/ is the signoff
+#     that it is ready to be seen
+#   - gitleaks scans the outgoing commits
+#   - commitlint checks each outgoing commit message (via the commit-msg hook)
+#   - scripts/check-structure.sh --range checks the lines each commit adds
+#
+# Only OUTGOING commits are checked: older history is already public and
+# cannot be unpublished by a hook. Fails CLOSED: a check that cannot run blocks
+# the push. `git push --no-verify` skips all of this; CI runs the same checks.
+set -u
+
+ROOT="$(git rev-parse --show-toplevel)"
+GITLEAKS_IMAGE="ghcr.io/gitleaks/gitleaks:v8.30.1"
+failed=0
+
+block() {
+    echo "pre-push: BLOCKED — $1" >&2
+    failed=1
+}
+
+gitleaks_range() {
+    local log_opts="$1"
+    if command -v gitleaks >/dev/null 2>&1; then
+        gitleaks git --log-opts="$log_opts" --redact --verbose "$ROOT"
+        return
+    fi
+    if command -v podman >/dev/null 2>&1; then
+        # label=disable instead of :Z — :Z would SELinux-relabel the whole repo
+        # on atomic Fedora.
+        local mounts=(-v "$ROOT:/repo:ro") common
+        # A linked worktree's .git is a file naming the main repository's git
+        # dir by its host path, so that dir is mounted at the same path.
+        common="$(git rev-parse --path-format=absolute --git-common-dir)"
+        [[ "$common" == "$ROOT/.git" ]] || mounts+=(-v "$common:$common:ro")
+        podman run --rm --security-opt label=disable "${mounts[@]}" -w /repo \
+            "$GITLEAKS_IMAGE" git --log-opts="$log_opts" --redact --verbose /repo
+        return
+    fi
+    echo "pre-push: neither 'gitleaks' nor 'podman' is available on PATH." >&2
+    return 1
+}
+
+commit_messages() {
+    local sha msg_file status=0
+    msg_file="$(mktemp)"
+    for sha in "$@"; do
+        git log -1 --format=%B "$sha" >"$msg_file"
+        "$ROOT/scripts/git-hooks/commit-msg" "$msg_file" || { echo "  in commit $sha" >&2; status=1; }
+    done
+    rm -f "$msg_file"
+    return "$status"
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # A deletion publishes nothing, and deleting is how a stray wip/ branch is
+    # taken down again.
+    [[ "$local_sha" =~ ^0+$ ]] && continue
+    if [[ "$local_ref" == refs/heads/wip/* || "$remote_ref" == refs/heads/wip/* ]]; then
+        block "$remote_ref is a wip/ branch. Rename it to pr/<name> when it is ready to be public."
+        continue
+    fi
+
+    # Only this remote's refs count as published: a commit another remote
+    # (a private mirror) already has is still new here.
+    if [[ "$remote_sha" =~ ^0+$ ]]; then
+        range=("$local_sha" --not --remotes="$1")
+    else
+        if ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+            block "$remote_ref has commits this clone does not; fetch before pushing."
+            continue
+        fi
+        range=("$remote_sha..$local_sha")
+    fi
+    if ! revs="$(git rev-list --reverse "${range[@]}")"; then
+        block "could not list the commits outgoing to $remote_ref."
+        continue
+    fi
+    [[ -n "$revs" ]] || continue
+    mapfile -t commits <<<"$revs"
+
+    gitleaks_range "${range[*]}" || block "gitleaks failed on $remote_ref."
+    commit_messages "${commits[@]}" || block "a commit message on $remote_ref failed commitlint."
+    "$ROOT/scripts/check-structure.sh" --range "${range[@]}" || block "check-structure failed on $remote_ref."
+done
+
+exit "$failed"

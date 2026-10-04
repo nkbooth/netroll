@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT net_definition_id\n               FROM net_favorites\n              WHERE account_id = $1 AND net_definition_id = ANY($2)\n              ORDER BY net_definition_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "net_definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_favorites",
+            "name": "net_definition_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d9d3f9705b363c4769d9748a62b40ac32f84fab961ad02571930582c46a44d8d"
+}

@@ -1,0 +1,207 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO net_definitions\n                (id, title, description, country, state, grid,\n                 net_category, net_type, expected_duration_minutes, visibility, link_token,\n                 created_at, updated_at)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)\n             RETURNING id, definition_version, title, description, country, state, grid,\n                       net_category, net_type, expected_duration_minutes, visibility,\n                       link_token, created_at, updated_at, archived_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "definition_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "definition_version"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "grid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "grid"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "net_category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_category"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "net_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_type"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "expected_duration_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "expected_duration_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "visibility",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "visibility"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "link_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "link_token"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "archived_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "archived_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8ebd3394da20b4ecbb1bfc7908b9cabef3c39bd3e88d973224ea753cef3ec5bd"
+}

@@ -1,0 +1,72 @@
+/* SPDX-License-Identifier: RPL-1.5 */
+/* Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. */
+@import './ui/tokens/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* No-horizontal-scroll discipline: the body itself never grows a
+   horizontal scrollbar, regardless of what a future descendant does; wide
+   list content scrolls inside its own ResponsiveList container instead. The
+   media max-width rule below is defense in depth, not the only guarantee. */
+html,
+body {
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+/* DESIGN.md form pattern: 2px accent focus ring on every focusable. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* A discovery title is a link, and this hover is its ONLY affordance on a
+   dense listing. BOTH halves live here, and that is the whole point: the
+   resting look was first written as an
+   inline `style` on each anchor, which an author stylesheet can never override
+   without `!important` — so the `:hover` below set the two properties the
+   inline object had already fixed, and no title ever changed on hover.
+
+   `color: inherit` rather than a token: it beats the UA's link blue and
+   visited purple (author beats UA), and it keeps each of the four sites at the
+   resting colour it had BEFORE it became a link — `--text` under `body` for
+   the three in the lists, `--text-muted` inherited from `nextUpStyle` in the
+   next-up strip. A token here would silently un-mute the strip.
+
+   `accent-ink` on hover, never pure `accent`: DESIGN.md reserves accent for
+   live/brand and it fails AA as text on white. */
+.net-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.net-title-link:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+
+/* The hover above was the ONLY affordance telling a reader a title is
+   clickable, and `:hover` never fires on a touch device — so four new links on
+   the busiest public page were invisible as links to anyone without a pointer.
+   At rest the class is `color: inherit; text-decoration: none`, i.e. visually
+   identical to the non-link text beside it, which is what made the absence
+   total rather than merely subtle. Pointer readers keep the reveal-on-hover
+   they already had; pointer-less readers get the underline up front. */
+@media (hover: none) {
+  .net-title-link {
+    text-decoration: underline;
+  }
+}

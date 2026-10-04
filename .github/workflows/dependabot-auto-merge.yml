@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: dependabot-auto-merge
+
+# Enable GitHub's native auto-merge on Dependabot's patch and minor action
+# bumps, so they land once the five required checks in `main-ci-gate` are
+# green and without a human clicking merge. Majors wait for a person.
+#
+# Safe to do because deploy.yml fires only on `release: published` and
+# `workflow_dispatch` — never on a push to main — so an auto-merged bump can
+# never deploy anything. And it cannot mint a release either: the subject is
+# `ci(deps): …`, which release-please does not release on.
+#
+# `pull_request`, never `pull_request_target`: this job needs nothing from the
+# base branch's secrets beyond GITHUB_TOKEN, and pull_request_target would hand
+# a write token to a workflow that checks out a fork's code.
+#
+# If Dependabot writes a sentence-cased subject (`ci(deps): Bump …`),
+# commitlint's `subject-case` rule reds the commitlint check and the PR just
+# sits — visible, not silent. That fix belongs to the commitlint config, not
+# here.
+#
+# Requires the repository setting `allow_auto_merge: true`, applied by
+# scripts/github-settings.sh.
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+    auto-merge:
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            pull-requests: write
+        steps:
+            - id: metadata
+              uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+              # --squash because the repo squash-merges with
+              # squash_merge_commit_title COMMIT_OR_PR_TITLE: the conventional
+              # PR title becomes the one commit that reaches main.
+              run: gh pr merge --auto --squash "$PR_URL"
+              env:
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

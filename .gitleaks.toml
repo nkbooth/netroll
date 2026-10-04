@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# gitleaks configuration — extends the built-in default ruleset.
+# Allowlist entries are added reactively (observed false positive), never
+# preemptively for whole directories.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Observed false positives: doc-comment prose describing the crypto scheme, not secrets."
+regexes = [
+  # "AES-256-GCM-encrypted" in a doc comment trips the generic-api-key
+  # high-entropy heuristic in the envelope-encryption docs.
+  '''AES-256-GCM-encrypted''',
+]

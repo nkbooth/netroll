@@ -1,0 +1,33 @@
+# Build-context excludes for the root Containerfile. Without these the
+# context ships gigabytes (backend/target alone is ~5G).
+#
+# podman reads .containerignore and buildx/docker read .dockerignore. Both
+# are regular files, kept identical by scripts/check-structure.sh.
+
+.git/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+_bmad/
+_bmad-output/
+design-artifacts/
+
+# NOTE: docs/ and mkdocs.yml are deliberately NOT excluded — the `docs` stage
+# builds them into /app/static/docs, so they are production image inputs.
+# `*.md` below only matches the context root (Go filepath.Match does not cross
+# `/`), so it drops README.md without touching docs/**.md.
+
+# Not inputs to the production image.
+.devcontainer/
+.github/
+deploy/
+scripts/
+# The MJML email build tool. Its OUTPUT is committed under
+# backend/crates/*/templates/ and ships via `COPY backend/`; the tool itself is
+# never a stage input, so excluding it keeps its node_modules out of every
+# build context — and makes "no Node in the runtime image" true of the context
+# too, not just the final layer.
+tools/
+audits/
+*.md
+.env*

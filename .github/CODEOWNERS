@@ -1,0 +1,4 @@
+# A signal, not a routing rule: no ruleset requires a code-owner review, so
+# this line only tells GitHub whom to request review from. The maintainer is
+# one person; that is the honest answer to "who owns this".
+* @nkbooth

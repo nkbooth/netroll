@@ -1,0 +1,300 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: deploy
+
+# Build the production image, push it to the registry, then roll it out on the
+# deploy host: render .env from 1Password (op inject), ship it with the compose
+# file and deploy/rollout.sh over SSH, and let rollout.sh swap, health-check
+# and roll back. deploy/README.md is the recipe for arming this on a fork.
+#
+# The one GitHub secret is OP_SERVICE_ACCOUNT_TOKEN, scoped to the deploy job's
+# environment. Everything else, including the host, user and path, is loaded
+# from the vault, because loaded secrets are masked in the run log and
+# repository variables are not, and this repository's run logs are public.
+#
+# Gating: deploys run when a release is published (by a person, or by
+# release-please running as a GitHub App), or manually via workflow_dispatch.
+# Merges to main do not deploy, and nothing here runs for a pull request.
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Git tag to build and deploy (empty = ref the run targets)'
+                required: false
+                type: string
+
+concurrency:
+    group: production-deploy
+    cancel-in-progress: false # queue deploys; a cancelled rollout leaves .env half-swapped
+
+permissions: {}
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        env:
+            IMAGE: ${{ vars.IMAGE_REF || 'ghcr.io/nkbooth/netroll' }}
+        outputs:
+            tag: ${{ steps.vars.outputs.tag }}
+            digest: ${{ steps.push.outputs.digest }}
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ inputs.tag || github.ref }}
+                  persist-credentials: false
+
+            # The tag names the image and the SBOMs, so it is checked against
+            # the registry's tag grammar before anything uses it. `latest`
+            # moves only for a plain release version that is not a
+            # prerelease: a dispatch on a branch or a `v2-wip` is a test
+            # deploy and must not become what `latest` pulls.
+            - id: vars
+              env:
+                  INPUT_TAG: ${{ inputs.tag }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+                  PRERELEASE: ${{ github.event.release.prerelease }}
+              run: |
+                  tag="${INPUT_TAG:-$RELEASE_TAG}"
+                  [[ -n "$tag" ]] || tag="sha-${GITHUB_SHA::7}"
+                  if [[ ! "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ || "$tag" == latest ]]; then
+                      echo "not a deployable image tag: $tag" >&2
+                      exit 1
+                  fi
+                  tags="${IMAGE}:${tag}"
+                  if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && "$PRERELEASE" != true ]]; then
+                      tags+=$'\n'"${IMAGE}:latest"
+                  fi
+                  {
+                      echo "tag=$tag"
+                      echo "tags<<EOF"
+                      echo "$tags"
+                      echo "EOF"
+                  } >> "$GITHUB_OUTPUT"
+
+            - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+            - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # ---- SBOMs: cargo cyclonedx + npm sbom, published as
+            # workflow artifacts and attached to the GHCR image as OCI
+            # referrers. NOT buildkit's sbom:true — that emits a syft SBOM,
+            # not the mandated cargo/npm-derived ones. SBOM generation runs
+            # on the runner (buildx compiled inside the Containerfile), so
+            # the job needs its own Rust + Node setup.
+            #
+            # Generation runs BEFORE the image push: a failed SBOM must not
+            # leave a pushed :latest/tag in GHCR with no SBOM attached. Only
+            # `oras attach` has to follow the push (referrers need the
+            # subject image in the registry).
+
+            # Same channel as backend/rust-toolchain.toml.
+            - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+              with:
+                  toolchain: "1.97"
+
+            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+              with:
+                  tool: cargo-cyclonedx
+
+            # No npm cache: a release build must not restore what a less
+            # trusted workflow on this repository could have written. zizmor
+            # assumes setup-node v5's implicit cache; this v4 pin has no
+            # `package-manager-cache` input and caches only when `cache:` is set.
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
+              with:
+                  node-version: 22
+
+            # One SBOM per workspace crate, written next to each Cargo.toml.
+            # cargo-cyclonedx (0.5.9) has no --locked — the hash guard fails
+            # the build if generation rewrote Cargo.lock instead of honoring it.
+            - name: backend SBOMs (cargo cyclonedx)
+              working-directory: backend
+              run: |
+                  lock_before="$(sha256sum Cargo.lock)"
+                  cargo cyclonedx --format json --spec-version 1.5 -q
+                  echo "$lock_before" | sha256sum -c -
+
+            # npm sbom reads the installed tree — npm ci first.
+            - name: frontend SBOM (npm sbom)
+              working-directory: frontend
+              run: |
+                  npm ci
+                  npm sbom --sbom-format cyclonedx > frontend.cdx.json
+
+            # Tag-stamped names so workflow artifacts and OCI referrers
+            # correlate with the released image.
+            - name: collect SBOMs
+              env:
+                  TAG: ${{ steps.vars.outputs.tag }}
+              run: |
+                  mkdir -p sbom
+                  for f in backend/crates/*/*.cdx.json; do
+                      crate="$(basename "$f" .cdx.json)"
+                      mv "$f" "sbom/${crate}-${TAG}.cdx.json"
+                  done
+                  mv frontend/frontend.cdx.json "sbom/frontend-${TAG}.cdx.json"
+                  for f in sbom/*.cdx.json; do
+                      jq -e '.components | length > 0' "$f" > /dev/null
+                  done
+                  ls -l sbom/
+
+            - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+              with:
+                  name: sbom-${{ steps.vars.outputs.tag }}
+                  path: sbom/*.cdx.json
+                  if-no-files-found: error
+
+            - id: push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+              with:
+                  context: .
+                  file: Containerfile
+                  # Links the package to this repository before its first
+                  # publish, so it inherits the repository's access rather
+                  # than starting as an unlinked private package.
+                  labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+                  push: true
+                  tags: ${{ steps.vars.outputs.tags }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+
+            - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6 # v1.2.4
+
+            # Attach after push: referrers need the subject image present in
+            # the registry. The docker/login-action credentials above also
+            # authenticate oras.
+            - name: attach SBOMs to GHCR image
+              working-directory: sbom
+              env:
+                  TAG: ${{ steps.vars.outputs.tag }}
+              run: |
+                  oras attach --artifact-type application/vnd.cyclonedx+json \
+                      "${IMAGE}:${TAG}" ./*.cdx.json
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        # rollout.sh gives up within about five minutes; anything longer is a
+        # hung connection holding the production-deploy queue.
+        timeout-minutes: 20
+        # On a public repository this environment carries a required reviewer,
+        # so no secret is materialised before someone approves the run.
+        environment: hero-production
+        permissions:
+            contents: read
+            packages: read
+        env:
+            IMAGE: ${{ vars.IMAGE_REF || 'ghcr.io/nkbooth/netroll' }}
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ inputs.tag || github.ref }}
+                  persist-credentials: false
+
+            - name: Load deploy credentials from 1Password
+              uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0 # v2.0.0
+              with:
+                  export-env: true
+              env:
+                  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+                  DEPLOY_HOST: op://netroll-deploy/deploy-target/host
+                  DEPLOY_USER: op://netroll-deploy/deploy-target/user
+                  DEPLOY_PATH: op://netroll-deploy/deploy-target/path
+                  DEPLOY_SSH_KEY: op://netroll-deploy/deploy-ssh/private-key
+                  DEPLOY_HOST_KEY: op://netroll-deploy/deploy-ssh/host-key
+
+            # Optional: a host reachable only over Tailscale. `secrets` can't
+            # appear in `if:`, so the client ID variable is the switch.
+            - name: Load the Tailscale secret
+              if: vars.TS_OAUTH_CLIENT_ID != ''
+              uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0 # v2.0.0
+              with:
+                  export-env: true
+              env:
+                  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+                  TS_OAUTH_SECRET: op://netroll-deploy/tailscale/client-secret
+
+            - name: Join the Tailscale network
+              if: vars.TS_OAUTH_CLIENT_ID != ''
+              uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3.3.0
+              with:
+                  oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+                  oauth-secret: ${{ env.TS_OAUTH_SECRET }}
+                  tags: tag:ci
+
+            - uses: 1password/install-cli-action@143a85f84a90555d121cde2ff5872e393a47ab9f # v1.0.0
+
+            # IMAGE_TAG carries the digest as well as the tag: a redeploy of an
+            # existing tag re-pushes it, and the rollback's .env.previous must
+            # still name the image that was running, not wherever the tag moved.
+            - name: Render production .env
+              env:
+                  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+                  TAG: ${{ needs.build.outputs.tag }}
+                  DIGEST: ${{ needs.build.outputs.digest }}
+              run: |
+                  if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+                      echo "the build reported no image digest: '$DIGEST'" >&2
+                      exit 1
+                  fi
+                  op inject -i deploy/.env.production.tpl -o "$RUNNER_TEMP/.env.next"
+                  printf 'IMAGE_REF=%s\nIMAGE_TAG=%s@%s\n' "$IMAGE" "$TAG" "$DIGEST" >> "$RUNNER_TEMP/.env.next"
+                  chmod 600 "$RUNNER_TEMP/.env.next"
+
+            # One alias carries the host and user, so no later step spells
+            # them out.
+            - name: Configure SSH
+              run: |
+                  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+                  printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+                  chmod 600 ~/.ssh/id_ed25519
+                  printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+                  printf 'Host deploy-host\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_ed25519\n  StrictHostKeyChecking yes\n  BatchMode yes\n  ConnectTimeout 15\n  ServerAliveInterval 15\n  ServerAliveCountMax 4\n' \
+                    "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+                  chmod 600 ~/.ssh/config
+
+            # The compose file lands as compose.yml.next, never over the
+            # running one: rollout.sh swaps it in with .env.next and restores
+            # both on a rollback.
+            - name: Ship compose file, .env and rollout script
+              run: |
+                  ssh deploy-host mkdir -p -- "$DEPLOY_PATH"
+                  scp deploy/compose.prod.yml "deploy-host:${DEPLOY_PATH}/compose.yml.next"
+                  scp "$RUNNER_TEMP/.env.next" "deploy-host:${DEPLOY_PATH}/.env.next"
+                  scp deploy/rollout.sh "deploy-host:${DEPLOY_PATH}/rollout.sh"
+
+            # A private package can't be pulled anonymously. The run's own
+            # GITHUB_TOKEN (this job's `packages: read`) is piped over stdin —
+            # never argv, never a file this workflow leaves behind — and
+            # expires when the run ends, so the credential cached on the host
+            # is worthless minutes later and is refreshed by the next deploy.
+            # The username is any non-empty string as far as GHCR is
+            # concerned; the token is what authenticates.
+            #
+            # --authfile is load-bearing: `podman compose` delegates to the
+            # external docker-compose provider, and THAT is what runs the
+            # pull. It reads ~/.docker/config.json and cannot see podman's own
+            # $XDG_RUNTIME_DIR/containers/auth.json, so a plain `podman login`
+            # leaves the pull anonymous and it 401s. Podman falls back to this
+            # same file, so one login serves both.
+            - name: Authenticate the host to GHCR
+              env:
+                  GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  printf '%s' "$GHCR_TOKEN" \
+                    | ssh deploy-host "mkdir -p ~/.docker \
+                      && podman login ghcr.io -u ci --password-stdin \
+                           --authfile ~/.docker/config.json"
+
+            - name: Roll out
+              run: ssh deploy-host bash -- "$DEPLOY_PATH/rollout.sh"

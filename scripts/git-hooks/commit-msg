@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Host-side commit-msg hook: reject messages that violate Conventional
+# Commits, using the same commitlint.config.cjs the CI commitlint job reads —
+# a bad message fails at commit time, not in the PR. Wired via `git config
+# core.hooksPath scripts/git-hooks` (one-time, documented in CONTRIBUTING.md, via scripts/bootstrap-hooks.sh).
+#
+# Container-first: the config extends @commitlint/config-conventional and the
+# repo root has no node_modules, so a bare host npx/commitlint cannot resolve
+# the preset — the official image bundles it. Image major pinned to match
+# wagoid/commitlint-github-action@v6's bundled commitlint (19.x) so hook and
+# CI agree on rules.
+#
+# Fails CLOSED: no commitlint binary and no podman means no commit.
+set -u
+
+MSG_FILE="$1"
+COMMITLINT_IMAGE="docker.io/commitlint/commitlint:19.9.1"
+
+reject() {
+    echo "commit-msg: message rejected — use Conventional Commits format:" >&2
+    echo "  <type>[optional scope]: <description>  (https://www.conventionalcommits.org)" >&2
+    exit 1
+}
+
+if command -v commitlint >/dev/null 2>&1; then
+    commitlint --config commitlint.config.cjs --edit "$MSG_FILE" || reject
+    exit 0
+fi
+
+if command -v podman >/dev/null 2>&1; then
+    # label=disable instead of :Z — :Z would SELinux-relabel the whole repo
+    # on atomic Fedora.
+    # The message file is mounted separately: in a linked worktree git passes
+    # an absolute path under the main repo's .git/worktrees/<name>/, which is
+    # outside the $PWD mount.
+    podman run --rm --security-opt label=disable \
+        -v "$PWD:/repo:ro" -w /repo \
+        -v "$(realpath "$MSG_FILE"):/commit-msg.txt:ro" \
+        "$COMMITLINT_IMAGE" --config commitlint.config.cjs --edit /commit-msg.txt || reject
+    exit 0
+fi
+
+echo "commit-msg: BLOCKED — commitlint message check could not run." >&2
+echo "Neither 'commitlint' nor 'podman' is available on PATH. Install one" >&2
+echo "(hook fails closed; see CONTRIBUTING.md)." >&2
+exit 1

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM net_favorites WHERE account_id = $1 AND net_definition_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "00d962ba28b32051b132011880abb82b98a4e70da33eb2ec0b50fdb345295a33"
+}

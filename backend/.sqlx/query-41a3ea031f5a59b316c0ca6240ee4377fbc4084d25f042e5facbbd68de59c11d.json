@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n             SET display_name = $2, location = $3, grid = $4, avatar_url = $5, updated_at = $6\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41a3ea031f5a59b316c0ca6240ee4377fbc4084d25f042e5facbbd68de59c11d"
+}

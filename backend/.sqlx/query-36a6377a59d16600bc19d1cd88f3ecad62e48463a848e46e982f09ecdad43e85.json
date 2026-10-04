@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_session_roles SET created_at = created_at - interval '2 seconds'\n         WHERE net_session_id = $1 AND account_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "36a6377a59d16600bc19d1cd88f3ecad62e48463a848e46e982f09ecdad43e85"
+}

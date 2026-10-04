@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c->>'kind' AS \"kind?\"\n                 FROM net_sessions ns,\n                      jsonb_array_elements(ns.definition_snapshot->'connections') AS c\n                WHERE ns.id = $1 AND c->>'id' = $2::text\n                LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind?",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c0b55b47af285fccebd5ad652dde331e94bc5269eabf18cab3ce37440a3090bb"
+}

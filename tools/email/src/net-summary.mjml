@@ -1,0 +1,18 @@
+<!-- SPDX-License-Identifier: RPL-1.5 -->
+<!-- Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. -->
+<mjml>
+<mj-include path="./_head.mjml" />
+  <mj-body background-color="$NR_BG$">
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600" color="$NR_ACCENT_INK$">{{ title }}</mj-text>
+        <mj-text>{% for line in meta %}{{ line }}<br />{% endfor %}</mj-text>
+        <mj-divider />
+        <mj-text font-size="16px" font-weight="600">Roster</mj-text>
+        <mj-text font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14px" line-height="22px">{% for line in station_lines %}{{ line }}<br />{% endfor %}</mj-text>
+        <mj-text color="$NR_TEXT_MUTED$" font-size="13px" line-height="20px">{% if has_attachments %}The full roster travels with this email as the attached CSV and ADIF exports.{% endif %}</mj-text>
+<mj-include path="./_footer.mjml" />
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

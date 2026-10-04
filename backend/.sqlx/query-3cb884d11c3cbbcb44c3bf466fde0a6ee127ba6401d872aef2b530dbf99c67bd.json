@@ -1,0 +1,172 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, definition_id, definition_version, definition_snapshot,\n                    lifecycle, started_at, closed_at,\n                    control_state, active_ncs_account_id, stalled_at_millis, last_seq,\n                    created_at, updated_at\n             FROM net_sessions WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "definition_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "definition_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "definition_version"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "definition_snapshot",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "definition_snapshot"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "lifecycle",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "lifecycle"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "closed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "closed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "control_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "control_state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "active_ncs_account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "active_ncs_account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "stalled_at_millis",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "stalled_at_millis"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "last_seq",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "last_seq"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3cb884d11c3cbbcb44c3bf466fde0a6ee127ba6401d872aef2b530dbf99c67bd"
+}

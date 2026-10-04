@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+[package]
+name = "netroll-adapters"
+version = "0.1.0"
+edition = "2024"
+license = "RPL-1.5"
+# Never published to a registry; also what lets cargo-deny skip licence
+# checks on our own crates (`[licenses.private]` in deny.toml).
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+netroll-domain = { path = "../netroll-domain" }
+# sqlx's runtime-tokio feature needs the tokio runtime available at link time.
+sqlx = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+lettre = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# SSRF-safe outbound HTTP client. rustls to match the lettre stack.
+reqwest = { workspace = true }
+# URL parsing for the up-front egress policy check (re-exported by reqwest).
+url = { workspace = true }
+# AES-256-GCM envelope encryption for QRZ credentials.
+aes-gcm = { workspace = true }
+# Not called directly — present so Cargo unifies its `zeroize` feature onto the
+# same `aes` crate aes-gcm depends on internally, so the AES round-key schedule
+# is scrubbed on drop (see backend/Cargo.toml).
+aes = { workspace = true }
+# In-memory KEK held in a scrubbing wrapper; plaintext DEK/credential buffers
+# zeroized after use.
+zeroize = { workspace = true }
+# Decodes the base64 `KEK` env value to 32 raw key bytes.
+base64 = { workspace = true }
+# Tolerant XML event-reader for the QRZ XML callbook adapter.
+quick-xml = { workspace = true }
+# Compile-time-checked HTML templates for the three link/notice mails. The
+# templates themselves are the MJML-generated files under `templates/`,
+# regenerated and byte-diffed by CI.
+askama = { workspace = true }
+# Structured warnings for the read paths that DEGRADE rather than fail: a stored
+# value this build cannot read must leave a trace, or the degradation is silent.
+tracing = { workspace = true }
+
+[dev-dependencies]
+testcontainers-modules = { version = "0.15", features = ["postgres"] }

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_session_roles SET created_at = now() WHERE net_session_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1f46efbffc8ea036a791d3eb7fae4f159fd52f0ae72bb27002a7b22609cd0f14"
+}

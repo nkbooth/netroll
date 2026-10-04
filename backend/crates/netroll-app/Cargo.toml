@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+[package]
+name = "netroll-app"
+version = "0.1.0"
+edition = "2024"
+license = "RPL-1.5"
+# Never published to a registry; also what lets cargo-deny skip licence
+# checks on our own crates (`[licenses.private]` in deny.toml).
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+netroll-domain = { path = "../netroll-domain" }
+netroll-adapters = { path = "../netroll-adapters" }
+# `multipart` carries the avatar upload body; `ws` is the live transport (an
+# opt-in axum feature, not default-on in 0.8).
+axum = { workspace = true, features = ["multipart", "ws"] }
+# `join_all` for the on-close email fan-out: one claim leases every leg of a
+# session, so the fan-out has to cost one attempt rather than one per address or
+# the lease scales with `MAX_DELIVERY_EMAILS`. Driven in this task, never
+# spawned, so a panic still unwinds here exactly as `join!` did.
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+thiserror = { workspace = true }
+sqlx = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+axum-extra = { workspace = true }
+rand = { workspace = true }
+base64 = { workspace = true }
+# Hashes the addresses in `known_addresses` so no plaintext roster of user
+# emails is ever held in memory.
+sha2 = { workspace = true }
+governor = { workspace = true }
+tower_governor = { workspace = true }
+# Scrubs the raw base64 KEK env string in `config::resolve_kek`, which would
+# otherwise sit in a plain heap `String`.
+zeroize = { workspace = true }
+# Compile-time-checked HTML template for the net-summary mail's HTML part. It
+# renders here, not in the mail adapter, so both parts come from ONE roster loop.
+askama = { workspace = true }
+
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }
+testcontainers-modules = { version = "0.15", features = ["postgres"] }
+# WS test client only — drives a real WebSocket against a real bound test
+# server (`tower::oneshot` cannot upgrade). Dev-only; the app crate itself adds
+# zero production WS dependencies (axum's built-in `ws` feature is used).
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "handshake"] }
+futures-util = "0.3"

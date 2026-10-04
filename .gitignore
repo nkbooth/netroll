@@ -1,0 +1,36 @@
+# Secrets — only .tpl reference files are committed
+.env
+.env.*
+!.env.example
+!.env.*.tpl
+!.env.template
+
+# BMAD installation — local tooling, reinstall with `npx bmad-method install`
+_bmad/
+
+# Planning artifacts — a private companion repository, cloned here by
+# scripts/bootstrap-planning.sh for those with access. Never published.
+_bmad-output/
+
+# Editor / OS noise
+.DS_Store
+*.swp
+
+# Build output
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# Local sqlx-cli install (used to regenerate the .sqlx offline cache in the
+# devcontainer; the cache itself under backend/.sqlx IS committed)
+backend/.sqlx-tools/
+
+# Local agent tooling
+.claude/
+
+# Local cargo home for scripts/dev-cargo.sh (a cache; the script itself is committed)
+/.cargo-cache/
+
+# Uploaded avatars in local dev (AVATAR_DIR default is data/avatars).
+# Runtime user data — never committed.
+data/

@@ -1,0 +1,22 @@
+{#-
+  VENDORED THEME OVERRIDE — Material for MkDocs 9.7.7
+  Upstream: material/templates/partials/javascripts/content.html
+  From image digest sha256:51b87149d227691486b5f08993d28c65ca7e4990010664b697265b8e6fcd5287
+  (the digest pinned at Containerfile:67).
+
+  Same reason as base.html: upstream ships these as inline <script> blocks
+  that `script-src 'self'` refuses. Both bodies are unmodified and
+  interpolate nothing, so they move to files verbatim.
+
+  The `content.tabs.link` branch is not enabled in mkdocs.yml today. It is
+  carried anyway so that enabling the feature later does not silently land a
+  half-vendored partial.
+
+  ON A MATERIAL UPGRADE: re-diff this against the new upstream partial and
+  mirror any change into docs/assets/javascripts/md-content-tabs.js and
+  docs/assets/javascripts/md-content.js.
+-#}
+{% if "content.tabs.link" in features %}
+  <script src="{{ 'assets/javascripts/md-content-tabs.js' | url }}"></script>
+{% endif %}
+<script src="{{ 'assets/javascripts/md-content.js' | url }}"></script>

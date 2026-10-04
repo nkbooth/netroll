@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kek_version, wrapped_dek, dek_nonce,\n                    credential_ciphertext, credential_nonce\n             FROM qrz_credentials\n             WHERE account_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kek_version",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "qrz_credentials",
+            "name": "kek_version"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "wrapped_dek",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "qrz_credentials",
+            "name": "wrapped_dek"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "dek_nonce",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "qrz_credentials",
+            "name": "dek_nonce"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "credential_ciphertext",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "qrz_credentials",
+            "name": "credential_ciphertext"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "credential_nonce",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "qrz_credentials",
+            "name": "credential_nonce"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2e00ab0ca4ce56a1b17fcd95b68976dc62b1d27ab3f70d71bbb5b1d53533b139"
+}

@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+[package]
+name = "netroll-domain"
+version = "0.1.0"
+edition = "2024"
+license = "RPL-1.5"
+# Never published to a registry; also what lets cargo-deny skip licence
+# checks on our own crates (`[licenses.private]` in deny.toml).
+publish = false
+
+[lints]
+workspace = true
+
+# PURE domain crate: no async runtime, no I/O. Never add sqlx, tokio, axum, or fred here.
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+# Pure hashing — allowed in domain; the I/O ban covers sqlx/tokio/axum/fred.
+sha2 = { workspace = true }
+# Pure HMAC-SHA256 for the webhook signature (keyed hash over the exact
+# serialized body bytes). No I/O.
+hmac = { workspace = true }
+# Date/time plus embedded IANA timezone data for DST-correct recurrence. No I/O.
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+# CIDR membership and stable IPv6 classification for the SSRF deny table. No I/O.
+ip_network = { workspace = true }
+# URL parser for the egress URL-policy validator. No I/O.
+url = { workspace = true }
+# Scrubs the QRZ credential value types on drop (`ZeroizeOnDrop`). No I/O.
+zeroize = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

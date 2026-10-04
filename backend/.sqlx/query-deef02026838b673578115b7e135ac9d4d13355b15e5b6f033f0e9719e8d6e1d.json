@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT delivery_emails FROM net_delivery_configs WHERE definition_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "delivery_emails",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "net_delivery_configs",
+            "name": "delivery_emails"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "deef02026838b673578115b7e135ac9d4d13355b15e5b6f033f0e9719e8d6e1d"
+}

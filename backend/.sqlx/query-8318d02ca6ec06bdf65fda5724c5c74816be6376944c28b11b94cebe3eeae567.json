@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT webhook_secret FROM net_delivery_configs WHERE definition_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "webhook_secret",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_delivery_configs",
+            "name": "webhook_secret"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8318d02ca6ec06bdf65fda5724c5c74816be6376944c28b11b94cebe3eeae567"
+}

@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Dependency policy, checked by `cargo deny check` in CI's audit job (which
+# also runs weekly, so a newly published advisory surfaces without a push).
+#
+# Licences: the allow list is exactly the set the dependency tree uses today,
+# so a new licence fails the build and is a decision, not a drift. Our own
+# crates are `publish = false` and skipped as private.
+
+[advisories]
+# The default RustSec database; any vulnerability, and any unmaintained crate,
+# is an error.
+
+[licenses]
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+[licenses.private]
+ignore = true
+
+[bans]
+# Duplicate versions are transitive and not ours to settle; visible, not fatal.
+multiple-versions = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

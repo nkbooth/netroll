@@ -1,0 +1,163 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                    d.id,\n                    d.title,\n                    d.description,\n                    d.country,\n                    d.state,\n                    d.grid,\n                    d.net_category,\n                    d.net_type,\n                    d.expected_duration_minutes,\n                    d.link_token,\n                    d.archived_at,\n                    f.created_at AS favorited_at\n               FROM net_favorites f\n               JOIN net_definitions d ON d.id = f.net_definition_id\n               WHERE f.account_id = $1\n                 AND ($2::timestamptz IS NULL OR (f.created_at, f.net_definition_id) < ($2, $3))\n               ORDER BY f.created_at DESC, f.net_definition_id DESC\n               LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "grid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "grid"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "net_category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_category"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "net_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "net_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expected_duration_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "expected_duration_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "link_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "link_token"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "archived_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_definitions",
+            "name": "archived_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "favorited_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_favorites",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "16a1b1a48be4cb40176bf9c599386bb3b86b4fb232a5688cd21e24bdb8ab9066"
+}

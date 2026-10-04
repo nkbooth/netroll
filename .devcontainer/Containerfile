@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Dev image only — the production build/runtime split lives in the root
+# Containerfile (UBI9 build -> ubi-minimal runtime).
+FROM registry.access.redhat.com/ubi9/ubi:latest
+
+# Created first: the 1password-cli rpm otherwise claims GID 1000 for its
+# own group, and dev must be uid/gid 1000 for the devpod bind-mount mapping.
+RUN groupadd --gid 1000 dev \
+    && useradd --uid 1000 --gid 1000 --create-home dev
+
+# Build deps for later sqlx/ring crates + basic dev ergonomics.
+RUN dnf install -y \
+        git \
+        gcc \
+        make \
+        openssl-devel \
+        pkgconf-pkg-config \
+        python3.12 \
+        python3.12-pip \
+        tar \
+        gzip \
+        unzip \
+        which \
+        procps-ng \
+        findutils \
+    && dnf clean all
+
+# Node 22 LTS from the UBI9 AppStream module. Vite 8 requires >= 22.12 —
+# gate the build on it so a stale module snapshot fails here, not at vite.
+RUN dnf module enable -y nodejs:22 \
+    && dnf install -y nodejs npm \
+    && dnf clean all \
+    && node --version \
+    && node -e 'const [maj, min] = process.versions.node.split(".").map(Number); if (maj < 22 || (maj === 22 && min < 12)) { console.error(`node ${process.versions.node} < 22.12 (Vite 8 floor)`); process.exit(1); }'
+
+# op CLI from the official 1Password rpm repo.
+RUN rpm --import https://downloads.1password.com/linux/keys/1password.asc \
+    && printf '[1password]\nname=1Password Stable Channel\nbaseurl=https://downloads.1password.com/linux/rpm/stable/$basearch\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc\n' \
+        > /etc/yum.repos.d/1password.repo \
+    && dnf install -y 1password-cli \
+    && dnf clean all
+
+# Image build != host install, so bare pip is fine in a throwaway layer.
+RUN pip3.12 install pre-commit
+
+# gitleaks pinned to the same version as the host hook and CI scan — one
+# scanner, one behavior. Checksum from the release's published checksums.txt.
+RUN curl -sSfL -o /tmp/gitleaks.tar.gz \
+        https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+    && echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" \
+        | sha256sum -c - \
+    && tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks \
+    && rm /tmp/gitleaks.tar.gz \
+    && gitleaks version
+
+# rustup system-wide: a $HOME-scoped install breaks when remoteUser
+# uid-mapping rewrites the user. Toolchain matches backend/rust-toolchain.toml.
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --no-modify-path \
+            --default-toolchain 1.97 \
+            --profile minimal \
+            --component rustfmt,clippy \
+    && chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
+
+USER dev

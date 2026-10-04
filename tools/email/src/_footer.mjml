@@ -1,0 +1,6 @@
+<!-- SPDX-License-Identifier: RPL-1.5 -->
+<!-- Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. -->
+        <mj-divider />
+        <mj-text color="$NR_TEXT_MUTED$" font-size="13px" line-height="20px">
+          NetRoll by N1CCK — amateur radio net logging.
+        </mj-text>

@@ -1,0 +1,279 @@
+/* SPDX-License-Identifier: RPL-1.5 */
+/* Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. */
+/*
+ * NetRoll theme foundation. Every custom property here mirrors
+ * src/ui/tokens/tokens.ts 1:1 — a drift test (tokens-css.test.ts) asserts the
+ * pairs verbatim, so edit tokens.ts first and keep this file in lockstep.
+ *
+ * Theme selection is the data-theme attribute on <html> (dark is the product
+ * default regardless of OS preference — never prefers-color-scheme). Variable
+ * names are identical in both blocks; only values swap.
+ */
+
+/*
+ * Bare :root carries the dark (default) block as a defensive fallback: if
+ * data-theme is ever missing or unrecognized, the app still renders styled.
+ * The light block's attribute selector is more specific, so light still wins.
+ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Core surfaces & ink */
+  --bg: #0D1117;
+  --surface: #161B22;
+  --surface-2: #1C232E;
+  --border: #2A313C;
+  --text: #D6DEE8;
+  --text-muted: #8592A3;
+
+  /* Brand cyan */
+  --accent: #2BC8DE;
+  --accent-deep: #0E7C8C;
+  --accent-ink: #7DE3F2;
+
+  /* Working-cursor coral */
+  --cursor: #FF7A59;
+  --cursor-ink: #FFB59E;
+
+  /* Connection status — live (cyan on dark) */
+  --live-text: #6FE0F0;
+  --live-fill: rgba(43,200,222,.12);
+  --live-border: #1C5C66;
+  --live-dot: #2BC8DE;
+
+  /* Connection status — catching-up */
+  --catch-text: #F0B24A;
+  --catch-fill: rgba(233,168,58,.12);
+  --catch-border: #6B531D;
+
+  /* Connection status — out-of-sync */
+  --sync-text: #FF8A8E;
+  --sync-fill: rgba(242,86,91,.12);
+  --sync-border: #7A2E31;
+  --sync-solid: #F2565B;
+
+  /* Connection status — net-paused */
+  --pause-text: #A6B2C6;
+  --pause-fill: rgba(85,98,122,.16);
+  --pause-border: #3B455A;
+
+  /* Entry / roster semantics */
+  --staying: #45D06A;
+  --warn: #F0B24A;
+
+  /* Source badges */
+  --self-text: #7DDDEB;
+  --self-fill: rgba(43,200,222,.10);
+  --self-border: #1C5C66;
+  --staff-text: #F0B24A;
+  --staff-fill: rgba(233,168,58,.10);
+  --staff-border: #6B531D;
+
+  /* Frequency pill */
+  --freq-text: #8CE6F2;
+  --freq-fill: #0C1B1E;
+  --freq-border: #143E44;
+
+  /* Button label ink on filled cyan */
+  --on-accent: #EAFEFF;
+
+  /* Ink on a solid accent fill (your-turn chip) */
+  --accent-contrast: #04222A;
+
+  /* Modal scrim */
+  --modal-backdrop: rgba(4,8,12,.66);
+
+  /* Device/browser chrome behind a framed panel */
+  --chrome: #0B0F14;
+
+  /* Theme toggle track + knob */
+  --toggle-track: #1C232E;
+  --knob: #2BC8DE;
+
+  /* Elevation: tonal layering first, shadow second */
+  --shadow: 0 20px 50px rgba(0,0,0,.45);
+  --head-grad: linear-gradient(180deg, #141A22, #12171E);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 26px;
+  --space-gutter: 12px;
+  --space-row-y: 14px;
+  --space-row-x: 20px;
+  --space-page-x: 22px;
+  --space-status-bar: 4px;
+
+  /* Rounded scale (full is rationed to ConnectionStatus + theme toggle) */
+  --rounded-sm: 6px;
+  --rounded-md: 9px;
+  --rounded-lg: 12px;
+  --rounded-xl: 16px;
+  --rounded-full: 9999px;
+  --rounded-keycap: 5px;
+  --rounded-modal: 14px;
+  --rounded-freq: 10px;
+
+  /* Motion budget */
+  --motion-fast: 140ms;
+  --motion-ease: ease-out;
+  --motion-live-pulse: 2s;
+  --motion-cursor-wash: 200ms;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Core surfaces & ink */
+  --bg: #EEF2F5;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F8;
+  --border: #D3DCE3;
+  --text: #16202B;
+  --text-muted: #566574;
+
+  /* Brand cyan */
+  --accent: #0C8599;
+  --accent-deep: #0B6E7D;
+  --accent-ink: #0A5A67;
+
+  /* Working-cursor coral */
+  --cursor: #E8590C;
+  --cursor-ink: #B8460A;
+
+  /* Connection status — live (green on light: ratified hue rule) */
+  --live-text: #1E6B2E;
+  --live-fill: #E7F6EC;
+  --live-border: #BFE6C9;
+  --live-dot: #2B8A3E;
+
+  /* Connection status — catching-up */
+  --catch-text: #8A6410;
+  --catch-fill: #FDF3DD;
+  --catch-border: #F0DCA6;
+
+  /* Connection status — out-of-sync */
+  --sync-text: #B42318;
+  --sync-fill: #FEECEB;
+  --sync-border: #F4C7C4;
+  --sync-solid: #C92A2A;
+
+  /* Connection status — net-paused */
+  --pause-text: #45505E;
+  --pause-fill: #EBEEF2;
+  --pause-border: #D4DBE2;
+
+  /* Entry / roster semantics */
+  --staying: #1E7A34;
+  --warn: #8A6410;
+
+  /* Source badges */
+  --self-text: #0A5A67;
+  --self-fill: #E6F4F6;
+  --self-border: #B7DEE4;
+  --staff-text: #8A6410;
+  --staff-fill: #FBF1D9;
+  --staff-border: #EAD6A0;
+
+  /* Frequency pill */
+  --freq-text: #0A5A67;
+  --freq-fill: #E6F4F6;
+  --freq-border: #B7DEE4;
+
+  /* Button label ink on filled cyan */
+  --on-accent: #FFFFFF;
+
+  /* Ink on a solid accent fill (your-turn chip) */
+  --accent-contrast: #FFFFFF;
+
+  /* Modal scrim */
+  --modal-backdrop: rgba(20,40,60,.44);
+
+  /* Device/browser chrome behind a framed panel — equals bg on light */
+  --chrome: #EEF2F5;
+
+  /* Theme toggle track + knob */
+  --toggle-track: #D3DCE3;
+  --knob: #FFFFFF;
+
+  /* Elevation: soft double shadow for the daylight shack */
+  --shadow: 0 1px 2px rgba(20,40,60,.06), 0 10px 30px rgba(20,40,60,.08);
+  --head-grad: linear-gradient(180deg, #F7FAFC, #FFFFFF);
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 26px;
+  --space-gutter: 12px;
+  --space-row-y: 14px;
+  --space-row-x: 20px;
+  --space-page-x: 22px;
+  --space-status-bar: 4px;
+
+  /* Rounded scale (full is rationed to ConnectionStatus + theme toggle) */
+  --rounded-sm: 6px;
+  --rounded-md: 9px;
+  --rounded-lg: 12px;
+  --rounded-xl: 16px;
+  --rounded-full: 9999px;
+  --rounded-keycap: 5px;
+  --rounded-modal: 14px;
+  --rounded-freq: 10px;
+
+  /* Motion budget */
+  --motion-fast: 140ms;
+  --motion-ease: ease-out;
+  --motion-live-pulse: 2s;
+  --motion-cursor-wash: 200ms;
+}
+
+/* Base element styles from the typography ramp */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Mono is the only heritage nod — scoped to radio data (callsigns, frequency,
+ * signal reports, timestamps, elapsed clock, grid squares), never body copy.
+ */
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/*
+ * Reduced motion: the budget collapses to instant. State changes
+ * still communicate via color + icon + label; nothing animates. The selector
+ * repeats the theme selectors at identical specificity, so the override wins
+ * purely on source order — this block must stay AFTER the theme blocks above.
+ * Zero values mirror REDUCED_MOTION_DURATION in motion.ts (drift-tested).
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  :root[data-theme='dark'],
+  :root[data-theme='light'] {
+    --motion-fast: 0s;
+    --motion-live-pulse: 0s;
+    --motion-cursor-wash: 0s;
+  }
+
+  .live-pulse,
+  .cursor-wash {
+    transition: none !important;
+    animation: none !important;
+  }
+}

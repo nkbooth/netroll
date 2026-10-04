@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+name: release-please
+
+# Semver is derived, never hand-set: release-please parses Conventional Commits
+# on main (fix → patch, feat → minor, feat!/BREAKING CHANGE → major), maintains
+# a release PR that bumps the version + CHANGELOG.md, and — when that PR is
+# merged — tags vX.Y.Z and publishes a GitHub release.
+#
+# It runs as a GitHub App, not GITHUB_TOKEN, for two reasons. The repository
+# forbids Actions from creating pull requests, so GITHUB_TOKEN cannot open the
+# release PR. And a release created by an App fires `release: published`,
+# which is what starts deploy.yml; dispatching the deploy from here as well
+# would deploy every release twice. Without the App (a fork that never set one
+# up) this job fails and releases are published by hand.
+
+on:
+    push:
+        branches: [main]
+
+permissions: {}
+
+concurrency:
+    group: release-please
+    cancel-in-progress: false
+
+jobs:
+    release-please:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              id: app-token
+              with:
+                  client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+                  private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+                  permission-contents: write
+                  permission-issues: write
+                  permission-pull-requests: write
+
+            - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+              with:
+                  token: ${{ steps.app-token.outputs.token }}
+                  config-file: release-please-config.json
+                  manifest-file: .release-please-manifest.json

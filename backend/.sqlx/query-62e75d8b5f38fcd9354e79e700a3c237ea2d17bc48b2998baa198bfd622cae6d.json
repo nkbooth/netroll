@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_sessions SET updated_at = $2\n         WHERE id = $1 AND lifecycle = 'live' AND control_state = 'active'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "62e75d8b5f38fcd9354e79e700a3c237ea2d17bc48b2998baa198bfd622cae6d"
+}

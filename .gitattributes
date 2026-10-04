@@ -1,0 +1,21 @@
+# The MJML-generated email templates are byte-compared in CI (ci.yml `frontend`
+# job runs tools/email/verify-regeneration.sh). A CRLF checkout would make that
+# diff fail on Windows/autocrlf clones for a reason that has nothing to do with
+# the templates, so mark them binary-as-far-as-line-endings-go: `-text` turns off
+# eol conversion in BOTH directions, so what is in the index is what lands in the
+# working tree. (`-text` alone does it; `eol=` has no effect once `text` is unset,
+# so it is not spelled here.)
+backend/crates/netroll-adapters/templates/*.html -text
+backend/crates/netroll-app/templates/*.html      -text
+tools/email/src/*.mjml                           -text
+tools/email/palette.lock.json                    -text
+
+# The comparison itself has the same dependency. A CRLF checkout of the script
+# gives `#!/usr/bin/env bash\r`, which does not execute — the local half of the
+# regeneration check would be unrunnable on exactly the platform the block
+# above exists for. And tokens.css is a byte-exact INPUT: build.mjs slices its
+# dark block, so a stray `\r` inside a value would be substituted into every
+# generated template.
+tools/email/verify-regeneration.sh                -text
+tools/email/build.mjs                             -text
+frontend/src/ui/tokens/tokens.css                 -text

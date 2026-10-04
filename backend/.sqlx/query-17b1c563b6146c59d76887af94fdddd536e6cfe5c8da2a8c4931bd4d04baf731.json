@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kind, timezone, one_off_start_at, frequency,\n                    local_hour, local_minute, weekday, day_of_month\n             FROM net_schedules WHERE definition_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "timezone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "timezone"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "one_off_start_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "one_off_start_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "frequency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "frequency"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "local_hour",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "local_hour"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "local_minute",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "local_minute"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "day_of_month",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "day_of_month"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "17b1c563b6146c59d76887af94fdddd536e6cfe5c8da2a8c4931bd4d04baf731"
+}

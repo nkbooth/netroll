@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+blank_issues_enabled: false
+contact_links:
+    # Net data belongs to the net owner. The maintainer never edits a listing,
+    # so there is no data-correction issue form; the page explains who to ask.
+    # (The page itself is docs/net-data.md.)
+    - name: Something about a net is wrong
+      url: https://github.com/nkbooth/netroll/blob/main/docs/net-data.md
+      about: A listing's time, frequency, description or owner is wrong. Here is who can fix it.
+    - name: Ask a question
+      url: https://github.com/nkbooth/netroll/discussions
+      about: How do I…? Is this expected? Anything that is not a bug or a feature.
+    - name: Report a security vulnerability
+      url: https://github.com/nkbooth/netroll/security/advisories/new
+      about: Please do not open a public issue for a vulnerability. This form stays private.

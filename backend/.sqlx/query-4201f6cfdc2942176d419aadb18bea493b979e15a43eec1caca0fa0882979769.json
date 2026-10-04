@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_sessions SET updated_at = $2\n         WHERE id = $1 AND lifecycle = 'live' AND control_state = 'active'\n         RETURNING definition_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_sessions",
+            "name": "definition_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4201f6cfdc2942176d419aadb18bea493b979e15a43eec1caca0fa0882979769"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO net_occurrences (id, definition_id, scheduled_start_at)\n                     VALUES ($1, $2, $3)\n                     ON CONFLICT (definition_id, scheduled_start_at) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ba328b8dc179a11f751e3235a098bc8db062e2c12290e946a01d0112a923b3e"
+}

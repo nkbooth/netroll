@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE net_delivery_jobs\n                  SET state = $2, completed_at = $3, claimed_until = NULL\n                WHERE id = $1 AND state = 'pending' AND claimed_until = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "880a4897099f5958a79a7a29bb81ec7e82aa1a2124e642d76401d05af4c8c8f9"
+}

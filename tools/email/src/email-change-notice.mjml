@@ -1,0 +1,15 @@
+<!-- SPDX-License-Identifier: RPL-1.5 -->
+<!-- Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. -->
+<mjml>
+<mj-include path="./_head.mjml" />
+  <mj-body background-color="$NR_BG$">
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="600" color="$NR_ACCENT_INK$">Your NetRoll email was changed</mj-text>
+        <mj-text>Your NetRoll email was changed to {{ new_email }}.</mj-text>
+        <mj-text>If this wasn't you, your account may be compromised.</mj-text>
+<mj-include path="./_footer.mjml" />
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

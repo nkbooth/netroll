@@ -1,0 +1,210 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Docs site config for NetRoll by N1CCK.
+#
+# Preview locally without installing anything on the host:
+#
+#   podman run --rm -it -p 8000:8000 -v "$PWD":/docs:ro \
+#     --security-opt label=disable docker.io/squidfunk/mkdocs-material \
+#     serve --dev-addr 0.0.0.0:8000
+#
+# Nav is EXPLICIT and must stay that way. MkDocs has no per-page ordering
+# key — it falls back to alphabetical filenames, which put "Your account"
+# first and "Getting started" third. The order below is the reader's journey:
+# learn it, set a net up, run it, manage your account, fix problems, then the
+# operator and contributor tracks, with lookup material last.
+#
+# Adding a page means adding a line here. That is the cost of controlling the
+# reading order; an omitted page builds but is unreachable. --strict does NOT catch
+# that on its own — MkDocs 1.6 reports an omitted page at INFO level, which
+# strict mode ignores (measured 2026-09-07: a page dropped from this nav built
+# with EXIT=0). `validation.nav.omitted_files: warn` at the bottom of this file
+# is what promotes it to a build failure.
+
+site_name: NetRoll by N1CCK
+site_description: Documentation for NetRoll — running amateur-radio nets in the browser.
+docs_dir: docs
+
+nav:
+    - Home: index.md
+    - Getting started:
+          - getting-started/index.md
+          - Create an account: getting-started/create-an-account.md
+          - Run your first net: getting-started/run-your-first-net.md
+          - Join a net: getting-started/join-a-net.md
+    - Nets:
+          - nets/index.md
+          - Create a net: nets/create-a-net.md
+          - Schedule a net: nets/schedule-a-net.md
+          - Net visibility: nets/net-visibility.md
+          - Manage owners: nets/manage-owners.md
+          - Configure delivery: nets/configure-delivery.md
+          - Who can fix a net's details: net-data.md
+    - Live sessions:
+          - live-sessions/index.md
+          - Start and close a session: live-sessions/start-and-close-a-session.md
+          - Log check-ins: live-sessions/log-check-ins.md
+          - Work the roster: live-sessions/work-the-roster.md
+          - Grant roles and relays: live-sessions/grant-roles-and-relays.md
+          - Hand off net control: live-sessions/hand-off-net-control.md
+          - Moderate a session: live-sessions/moderate-a-session.md
+          - Export a log: live-sessions/export-a-log.md
+          - Session lifecycle: live-sessions/session-lifecycle.md
+          - Live updates: live-sessions/live-updates.md
+    - Your account:
+          - account/index.md
+          - Sign in: account/sign-in.md
+          - Reserve a callsign: account/reserve-a-callsign.md
+          - Connect QRZ: account/connect-qrz.md
+          - Export or delete your data: account/export-or-delete-your-data.md
+    - Troubleshooting:
+          - troubleshooting/index.md
+          - Signing in: troubleshooting/signing-in.md
+          - Live sessions: troubleshooting/live-sessions.md
+          - Self-hosting: troubleshooting/self-hosting.md
+    - Self-hosting:
+          - self-hosting/index.md
+          - Quickstart: self-hosting/quickstart.md
+          - Use the admin dashboard: self-hosting/admin-dashboard.md
+          - Enable analytics: self-hosting/enable-analytics.md
+          - Upgrade an instance: self-hosting/upgrade-an-instance.md
+          - Deployment model: self-hosting/deployment-model.md
+    - Reference:
+          - reference/index.md
+          - Configuration: reference/configuration.md
+          - HTTP API: reference/http-api.md
+          - WebSocket protocol: reference/websocket-protocol.md
+          - Webhook payload: reference/webhook-payload.md
+          - Discord message: reference/discord-message.md
+          - Roles and permissions: reference/roles-and-permissions.md
+          - Glossary: reference/glossary.md
+          - Vocabulary: reference/vocabulary.md
+
+theme:
+    name: material
+    # Overrides three of Material's partials so the theme's bootstrap scripts
+    # load from files instead of inline <script> blocks. Production serves the
+    # docs behind `script-src 'self'`, which refuses inline scripts; the
+    # refused bootstrap is what defines __md_get, so Material's whole bundle
+    # died on it and took the sidebar's scroll sizing with it. See the
+    # provenance headers in overrides/ — a Material upgrade means re-diffing
+    # those files against upstream.
+    custom_dir: overrides
+    # Material otherwise pulls Roboto from fonts.googleapis.com and emits an
+    # inline <style> to declare it. Production serves the docs behind a CSP
+    # with `font-src 'self'` and `style-src-elem 'self'`, so that request was
+    # always refused and that <style> was always dropped — the webfont has
+    # never actually applied on the live site. Declining it here stops asking
+    # for something that cannot arrive, and leaves the docs with zero inline
+    # <style> so the policy needs no exception for one.
+    font: false
+    # The product logomark, shared verbatim with the SPA favicon
+    # (frontend/public/favicon.svg) so the two can never drift apart.
+    logo: assets/logomark.svg
+    favicon: assets/logomark.svg
+    palette:
+        # Dark is the product default, so the docs lead with it too.
+        - media: '(prefers-color-scheme: dark)'
+          scheme: slate
+          primary: cyan
+          accent: cyan
+          toggle:
+              icon: material/weather-sunny
+              name: Switch to light mode
+        - media: '(prefers-color-scheme: light)'
+          scheme: default
+          primary: cyan
+          accent: cyan
+          toggle:
+              icon: material/weather-night
+              name: Switch to dark mode
+    features:
+        - navigation.sections
+        - navigation.top
+        - navigation.instant
+        - navigation.tracking
+        - toc.follow
+        - content.code.copy
+        - search.highlight
+        - search.suggest
+
+markdown_extensions:
+    - admonition
+    - attr_list
+    - tables
+    - toc:
+          permalink: true
+    - pymdownx.details
+    - pymdownx.highlight
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    # Renders ```mermaid fences as diagrams rather than code blocks.
+    - pymdownx.superfences:
+          custom_fences:
+              - name: mermaid
+                class: mermaid
+                format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+    - search
+
+# Projects the app's design tokens onto Material's variables — see the file
+# header for why this is a projection and not a second palette.
+extra_css:
+    - assets/netroll.css
+
+# VENDORED THIRD-PARTY BUNDLE — mermaid 11.16.1, MIT, npm `mermaid` package,
+# dist/mermaid.min.js, sha256
+# 18327bef70d96fb505fe7287d9f6a7362ebf07ff6576ddfaffb1a06f3e1a2954, byte-identical
+# to upstream.
+#
+# Material's own mermaid integration only fetches the library when the global is
+# missing — its bundle does `typeof mermaid == "undefined" ? load(
+# "https://unpkg.com/mermaid@11/dist/mermaid.min.js") : use-the-existing-one`.
+# Production serves the docs behind `script-src 'self'`, which refuses that
+# off-origin fetch, and the theme strips the `mermaid` class off the source
+# block before it tries — so the diagram never renders and the reader is left
+# with bare fence text. Serving the same library from `assets/` satisfies the
+# theme's own check, so it takes the "already loaded" branch: no second
+# initialize call, no race, and no CSP exception. The theme still owns
+# `mermaid.initialize()` and the NetRoll theming in docs/assets/netroll.css.
+#
+# The major version is not free to choose: it must match what the theme's
+# bundle expects (mermaid@11 at Material 9.7.7).
+#
+# ON A MATERIAL UPGRADE — that is, any bump of the digest on the Containerfile's
+# `FROM … AS docs` stage, which is pinned again in .github/workflows/ci.yml's
+# docs-build step and asserted equal by netroll-adapters'
+# `conventions_pinned_digests_agree` test — re-check the mermaid major the new bundle names and re-pin this
+# file to match, alongside re-diffing the vendored partials in overrides/. Both
+# obligations hang off that one digest.
+#
+# md-mermaid-csp.js is project code, not vendored, and must load after mermaid:
+# the library ships each diagram's stylesheet as a <style> element inside the
+# SVG, which `style-src-elem 'self'` refuses just as flatly as it refused the
+# off-origin fetch. That file re-homes those rules in a constructed stylesheet,
+# which CSP does not govern. Its own header explains the mechanism.
+extra_javascript:
+    - assets/javascripts/mermaid-11.16.1.min.js
+    - assets/javascripts/md-mermaid-csp.js
+
+extra:
+    # Sends the header logomark back to the app root, mirroring how the in-app
+    # wordmark returns to discovery from any surface. The docs are a
+    # section of the product, so there is always a way back out of them.
+    homepage: /
+
+# Surface broken internal links, broken anchors and pages missing from the
+# explicit nav as warnings, which --strict turns into build failures. Three of
+# these four default to `info`, which strict mode ignores, so each has to be
+# named here to fail a build at all — `omitted_files` was measured doing exactly
+# that (see the nav comment), and `anchors` is the same mechanism one key over:
+# rename a linked heading and every `page.md#fragment` pointing at it goes dead
+# while the build stays green.
+validation:
+    nav:
+        omitted_files: warn
+    links:
+        absolute_links: warn
+        unrecognized_links: warn
+        anchors: warn

@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: RPL-1.5 -->
+<!-- Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- The NetRoll logomark (public/favicon.svg mirrors ui/components/Logomark).
+         The .ico is the fallback for browsers with no SVG-favicon support and
+         carries a simplified 16px layer; see public/README-favicon.md to
+         regenerate it. Order matters: the .ico is declared first so an
+         SVG-capable browser still prefers the SVG that follows it. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NetRoll by N1CCK</title>
+    <!-- Theme FOUC guard. Its own file rather than an inline script so the
+         served CSP stays `script-src 'self'` with no hash to keep in sync;
+         render-blocking on purpose (see public/theme-init.js). -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

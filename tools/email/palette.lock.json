@@ -1,0 +1,122 @@
+{
+  "backend/crates/netroll-adapters/templates/magic_link.html": {
+    "--accent-deep": {
+      "value": "#0E7C8C",
+      "occurrences": 3
+    },
+    "--accent-ink": {
+      "value": "#7DE3F2",
+      "occurrences": 2
+    },
+    "--bg": {
+      "value": "#0D1117",
+      "occurrences": 2
+    },
+    "--border": {
+      "value": "#2A313C",
+      "occurrences": 2
+    },
+    "--on-accent": {
+      "value": "#EAFEFF",
+      "occurrences": 1
+    },
+    "--surface": {
+      "value": "#161B22",
+      "occurrences": 5
+    },
+    "--text": {
+      "value": "#D6DEE8",
+      "occurrences": 1
+    },
+    "--text-muted": {
+      "value": "#8592A3",
+      "occurrences": 3
+    }
+  },
+  "backend/crates/netroll-adapters/templates/email_change.html": {
+    "--accent-deep": {
+      "value": "#0E7C8C",
+      "occurrences": 3
+    },
+    "--accent-ink": {
+      "value": "#7DE3F2",
+      "occurrences": 2
+    },
+    "--bg": {
+      "value": "#0D1117",
+      "occurrences": 2
+    },
+    "--border": {
+      "value": "#2A313C",
+      "occurrences": 2
+    },
+    "--on-accent": {
+      "value": "#EAFEFF",
+      "occurrences": 1
+    },
+    "--surface": {
+      "value": "#161B22",
+      "occurrences": 5
+    },
+    "--text": {
+      "value": "#D6DEE8",
+      "occurrences": 1
+    },
+    "--text-muted": {
+      "value": "#8592A3",
+      "occurrences": 3
+    }
+  },
+  "backend/crates/netroll-adapters/templates/email_change_notice.html": {
+    "--accent-ink": {
+      "value": "#7DE3F2",
+      "occurrences": 1
+    },
+    "--bg": {
+      "value": "#0D1117",
+      "occurrences": 2
+    },
+    "--border": {
+      "value": "#2A313C",
+      "occurrences": 2
+    },
+    "--surface": {
+      "value": "#161B22",
+      "occurrences": 5
+    },
+    "--text": {
+      "value": "#D6DEE8",
+      "occurrences": 2
+    },
+    "--text-muted": {
+      "value": "#8592A3",
+      "occurrences": 1
+    }
+  },
+  "backend/crates/netroll-app/templates/net_summary.html": {
+    "--accent-ink": {
+      "value": "#7DE3F2",
+      "occurrences": 1
+    },
+    "--bg": {
+      "value": "#0D1117",
+      "occurrences": 2
+    },
+    "--border": {
+      "value": "#2A313C",
+      "occurrences": 4
+    },
+    "--surface": {
+      "value": "#161B22",
+      "occurrences": 5
+    },
+    "--text": {
+      "value": "#D6DEE8",
+      "occurrences": 3
+    },
+    "--text-muted": {
+      "value": "#8592A3",
+      "occurrences": 2
+    }
+  }
+}

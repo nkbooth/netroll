@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# The forward guard on the query-string contract. A lint rather than a CI `grep`
+# gate because it needs no new pipeline step, resolves the re-exported path, and
+# fires on both a `use` and a handler signature.
+#
+# `axum::extract::Query`'s rejection is axum's own plain-text response, which
+# bypasses the RFC 9457 `application/problem+json` contract every other failure
+# on this API uses. `http::AppQuery` wraps it and maps the rejection onto
+# `ApiError::Validation`; these entries stop a new handler reaching for a raw
+# query-string extractor and silently reintroducing a second error format.
+#
+# `Form`/`RawForm`/`RawQuery` are listed alongside `Query`: `Form<T>` on a GET
+# is a drop-in query-string reader with the same
+# `serde_urlencoded` semantics and the same plain-text rejection, and the `form`
+# feature is on — so it is the most likely accidental bypass, not a theoretical
+# one. `RawQuery`/`RawForm` hand back the unparsed string and cannot reject at
+# all, which is a different way to leave the contract.
+#
+# The only escape hatches are in `http/mod.rs`, THREE of them behind one denied
+# import: the shared `use` of the raw extractor,
+# and the impl of each wrapper — `AppQuery` (lenient) and `AppStrictQuery`
+# (filtered reads refuse an unrecognised key). All three use `#[expect(...)]`
+# rather than `#[allow(...)]` on purpose: if this file goes missing, is renamed,
+# or stops being discovered, the lint stops firing and those three sites become
+# `unfulfilled_lint_expectations` build failures instead of silence. That is the
+# guard verifying its own liveness, which `#[allow]` could not do.
+disallowed-types = [
+  { path = "axum::extract::Query", reason = "use http::AppQuery so query rejections stay problem+json" },
+  { path = "axum::extract::Form", reason = "a GET Form<T> is a query-string reader with a plain-text rejection; use http::AppQuery" },
+  { path = "axum::extract::RawForm", reason = "hands back an unparsed body/query string and cannot reject; use http::AppQuery" },
+  { path = "axum::extract::RawQuery", reason = "hands back an unparsed query string and cannot reject; use http::AppQuery" },
+]
+
+# Proper nouns `doc_markdown` would otherwise demand backticks around, as if
+# they were code. `".."` keeps clippy's default list (GitHub, IPv4, …) rather
+# than replacing it.
+doc-valid-idents = ["EchoLink", "NetRoll", "NetControl", "LoTW", "AllStarLink", "AllStar", "FreeDMR", "HamQTH", "UUIDv7", ".."]

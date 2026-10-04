@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO net_delivery_configs\n                   (definition_id, delivery_emails, webhook_url, webhook_secret,\n                    discord_webhook_url, created_at, updated_at)\n               VALUES ($1, $2, $3, $4, $6, $5, $5)\n               ON CONFLICT (definition_id) DO UPDATE SET\n                   delivery_emails = excluded.delivery_emails,\n                   webhook_url = excluded.webhook_url,\n                   -- Preserve an existing secret across a URL edit (mint once);\n                   -- drop it when the webhook itself is cleared.\n                   webhook_secret = CASE\n                       WHEN excluded.webhook_url IS NULL THEN NULL\n                       ELSE COALESCE(net_delivery_configs.webhook_secret, excluded.webhook_secret)\n                   END,\n                   -- A plain replace: Discord mints nothing, so there is no\n                   -- COALESCE to preserve and a PUT that omits the field\n                   -- clears it (the same replace semantics `webhook_url` and\n                   -- `delivery_emails` already have).\n                   discord_webhook_url = excluded.discord_webhook_url,\n                   updated_at = excluded.updated_at\n               RETURNING webhook_secret",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "webhook_secret",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_delivery_configs",
+            "name": "webhook_secret"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "adfb4b75f0dff6271c67a747fc0dcf52344e4aca7fe5417e729aa1cb329b332c"
+}

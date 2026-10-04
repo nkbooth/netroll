@@ -1,0 +1,208 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, definition_id, position, kind, planned_frequency_hz, band, mode,\n                repeater_offset_hz, tone_mode, tone_value, node, reflector, network,\n                talkgroup, label, detail\n           FROM net_connections\n          WHERE definition_id = ANY($1)\n          ORDER BY definition_id, position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "definition_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "position",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "planned_frequency_hz",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "planned_frequency_hz"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "band",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "band"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "mode"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "repeater_offset_hz",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "repeater_offset_hz"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "tone_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "tone_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tone_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "tone_value"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "node",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "node"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "reflector",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "reflector"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "network",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "network"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "talkgroup",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "talkgroup"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "detail",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_connections",
+            "name": "detail"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "915d6acccd2325a299568f60c7ec763e28716dbab895b5b6aaf3d5d9cfc12ee5"
+}

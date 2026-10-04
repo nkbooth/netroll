@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.definition_id, s.kind, s.timezone, s.one_off_start_at, s.frequency,\n                    s.local_hour, s.local_minute, s.weekday, s.day_of_month\n             FROM net_schedules s\n             JOIN net_definitions d ON d.id = s.definition_id\n             WHERE d.archived_at IS NULL AND s.kind = 'recurring'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "definition_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "definition_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "timezone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "timezone"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "one_off_start_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "one_off_start_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "frequency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "frequency"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "local_hour",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "local_hour"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "local_minute",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "local_minute"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "day_of_month",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "net_schedules",
+            "name": "day_of_month"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e91b70d36c545f0d9ad35b75fcd494304214229ab3a2c00d2108b0460d61e33e"
+}

@@ -1,0 +1,167 @@
+/* SPDX-License-Identifier: RPL-1.5 */
+/* Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE. */
+/*
+ * NetRoll theming for Material for MkDocs.
+ *
+ * Maps the product's design tokens (frontend/src/ui/tokens/tokens.css, itself
+ * derived from DESIGN.md) onto Material's own `--md-*` custom properties, so
+ * /docs reads as a section of the app rather than a separate site bolted on.
+ *
+ * The two systems key their themes differently and stay independent on
+ * purpose: the app switches on `[data-theme]`, Material on
+ * `[data-md-color-scheme]`. The docs carry Material's own toggle, so the
+ * values are simply declared under both of its schemes.
+ *
+ * The hex values here are a projection of tokens.css, not a second palette,
+ * and that is ENFORCED rather than requested: the drift test
+ * at frontend/src/ui/tokens/palette-projections.test.ts asserts every --nr-*
+ * value below against the matching tokens.css variable, VERBATIM, and it runs
+ * in the required `frontend` CI job. Edit tokens.ts, then tokens.css, then
+ * this file. (Before that test existed, all 21 of the hexes below that contain
+ * a letter had drifted to lowercase — the same colours, different bytes, which
+ * is what an unenforced hand-copy looks like after a few months.)
+ */
+
+/* ---- Dark (product default) ---------------------------------------- */
+[data-md-color-scheme='slate'] {
+    --nr-bg: #0D1117;
+    --nr-surface: #161B22;
+    --nr-surface-2: #1C232E;
+    --nr-border: #2A313C;
+    --nr-text: #D6DEE8;
+    --nr-text-muted: #8592A3;
+    --nr-accent: #2BC8DE;
+    --nr-accent-deep: #0E7C8C;
+    --nr-accent-ink: #7DE3F2;
+    --nr-cursor: #FF7A59;
+    --nr-code-bg: #1C232E;
+}
+
+/* ---- Light ---------------------------------------------------------- */
+[data-md-color-scheme='default'] {
+    --nr-bg: #EEF2F5;
+    --nr-surface: #FFFFFF;
+    --nr-surface-2: #F1F5F8;
+    --nr-border: #D3DCE3;
+    --nr-text: #16202B;
+    --nr-text-muted: #566574;
+    --nr-accent: #0C8599;
+    --nr-accent-deep: #0B6E7D;
+    --nr-accent-ink: #0A5A67;
+    --nr-cursor: #E8590C;
+    --nr-code-bg: #F1F5F8;
+}
+
+/* ---- Projection onto Material's variables --------------------------- */
+[data-md-color-scheme] {
+    --md-default-bg-color: var(--nr-bg);
+    --md-default-fg-color: var(--nr-text);
+    --md-default-fg-color--light: var(--nr-text-muted);
+    --md-default-fg-color--lighter: var(--nr-text-muted);
+    --md-default-fg-color--lightest: var(--nr-border);
+
+    --md-typeset-color: var(--nr-text);
+    --md-typeset-a-color: var(--nr-accent-ink);
+
+    --md-primary-fg-color: var(--nr-bg);
+    --md-primary-bg-color: var(--nr-text);
+    --md-accent-fg-color: var(--nr-accent);
+
+    --md-code-bg-color: var(--nr-code-bg);
+    --md-code-fg-color: var(--nr-text);
+
+    /* Callsigns and code are the one heritage mono nod (DESIGN.md § Type). */
+    --md-code-font: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* The header is the app's, not Material's stock primary bar. */
+.md-header {
+    background: var(--nr-surface);
+    border-bottom: 1px solid var(--nr-border);
+    color: var(--nr-text);
+    box-shadow: none;
+}
+
+.md-tabs {
+    background: var(--nr-surface);
+    border-bottom: 1px solid var(--nr-border);
+}
+
+/* "by N1CCK" is attribution, not the mark — cyan ink beside the wordmark,
+   never competing with it in weight (DESIGN.md § Brand & Style). */
+.md-header__topic .md-ellipsis {
+    font-weight: 700;
+}
+
+/* Tables carry most of the reference material, so they get real borders
+   rather than Material's default underline-only treatment. */
+.md-typeset table:not([class]) {
+    border: 1px solid var(--nr-border);
+    background: var(--nr-surface);
+}
+
+.md-typeset table:not([class]) th {
+    background: var(--nr-surface-2);
+    color: var(--nr-text);
+    border-bottom: 1px solid var(--nr-border);
+}
+
+.md-typeset table:not([class]) td {
+    border-top: 1px solid var(--nr-border);
+}
+
+/* Code blocks sit on the elevated surface, matching in-app panels. */
+.md-typeset pre > code {
+    border: 1px solid var(--nr-border);
+    border-radius: 8px;
+}
+
+/* Inline code is data, so it reads as a chip rather than plain prose. */
+.md-typeset code {
+    border-radius: 4px;
+}
+
+/* Mermaid diagrams inherit the palette instead of rendering in stock grey.
+   Material drives mermaid from these variables at initialize time. */
+.md-typeset .mermaid {
+    --md-mermaid-node-bg-color: var(--nr-surface-2);
+    --md-mermaid-node-fg-color: var(--nr-accent-ink);
+    --md-mermaid-label-bg-color: var(--nr-surface);
+    --md-mermaid-label-fg-color: var(--nr-text);
+    --md-mermaid-edge-color: var(--nr-accent-deep);
+    --md-mermaid-font-family: inherit;
+    background: var(--nr-surface);
+    border: 1px solid var(--nr-border);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* Search results and the sidebar follow the same surface ramp. */
+.md-search__form,
+.md-search__output {
+    background: var(--nr-surface-2);
+}
+
+.md-nav__link--active,
+.md-nav__link:focus,
+.md-nav__link:hover {
+    color: var(--nr-accent-ink);
+}
+
+/* Focus visibility is a floor, not a nicety: the keyboard contract. */
+.md-typeset a:focus-visible,
+.md-nav__link:focus-visible,
+.md-header a:focus-visible {
+    outline: 2px solid var(--nr-accent);
+    outline-offset: 2px;
+}
+
+/* The live-dot pulse and colour transitions are disabled under reduced
+   motion in-app; hold the same line here. */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

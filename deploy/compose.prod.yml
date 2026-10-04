@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# NetRoll production compose, run under rootless podman.
+#
+# deploy.yml ships this file to the host's deploy directory as compose.yml,
+# beside a .env rendered from deploy/.env.production.tpl, and runs rollout.sh
+# there. That .env serves double duty: compose interpolates ${IMAGE_REF},
+# ${IMAGE_TAG} and ${POSTGRES_PASSWORD} from it, and env_file injects it into
+# the app container (no .env file exists inside the container).
+#
+# The compose project name is the deploy directory's basename, and the named
+# volumes below are prefixed with it. Moving the directory, or adding a
+# top-level `name:`, boots the next deploy against EMPTY volumes.
+#
+# Host port 3001 maps to the image's 3000, on all interfaces so a reverse
+# proxy on another host can reach it. Restrict it with the host firewall
+# (rootless podman does not bypass firewalld), or bind 127.0.0.1 when the proxy
+# runs on the same host.
+#
+services:
+    app:
+        image: ${IMAGE_REF:-ghcr.io/nkbooth/netroll}:${IMAGE_TAG:-latest}
+        container_name: netlogger-app
+        restart: unless-stopped
+        env_file: .env
+        ports:
+            - '3001:3000'
+        volumes:
+            # Uploaded avatars — the only user data living outside Postgres.
+            # Without this they vanish on every image bump, since the deploy
+            # replaces the container rather than updating it in place. The
+            # path matches AVATAR_DIR baked into the image.
+            - netroll-avatars:/app/data/avatars
+        depends_on:
+            - postgres
+        # Repeats the image's HEALTHCHECK, which podman ignores for OCI images
+        # (the format the release build publishes): without this, podman
+        # reports the container healthy because it has no check at all.
+        healthcheck:
+            test: ['CMD', '/usr/bin/curl', '-fsS', '-o', '/dev/null', 'http://127.0.0.1:3000/healthz']
+            interval: 30s
+            timeout: 3s
+            start_period: 30s
+            retries: 3
+
+    # The app migrates the schema itself at boot; this service only
+    # has to be running. DATABASE_URL in .env points at this hostname.
+    postgres:
+        image: postgres:18
+        container_name: netlogger-postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: netroll
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: netroll
+        volumes:
+            # postgres 18+ images store data in a version-specific
+            # subdirectory under a single /var/lib/postgresql mount
+            # (docker-library/postgres#1259) — mounting at the old
+            # .../data path makes the entrypoint refuse to start.
+            - netroll-pgdata:/var/lib/postgresql
+
+volumes:
+    netroll-pgdata:
+    netroll-avatars:

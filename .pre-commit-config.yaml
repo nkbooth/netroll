@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: RPL-1.5
+# Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
+# Runs in-container only (pre-commit run --all-files). Deliberately NOT
+# `pre-commit install`ed: commits happen on the host where the pre-commit
+# binary does not exist, and the git-hook shim fails closed without it.
+# Generated/artifact trees are excluded globally; lockfiles and binary
+# assets are excluded only from the rewriting fixer hooks, so
+# check-merge-conflict / check-added-large-files still see them.
+exclude: |
+  (?x)^(
+      _bmad.*/.*
+    | design-artifacts/.*
+    | docs/.*
+  )$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: &fixer-exclude |
+          (?x)^(
+              frontend/package-lock\.json
+            | backend/Cargo\.lock
+            | .*\.(png|svg)
+          )$
+      - id: end-of-file-fixer
+        exclude: *fixer-exclude
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt-check
+        name: cargo fmt --check (backend)
+        language: system
+        entry: cargo fmt --manifest-path backend/Cargo.toml --all -- --check
+        files: \.rs$
+        pass_filenames: false
+      - id: oxlint
+        name: oxlint (frontend)
+        language: system
+        # --no-install: resolve oxlint from frontend/node_modules and fail
+        # loudly if `npm ci` hasn't run yet, instead of silently fetching an
+        # unpinned version from the registry.
+        entry: bash -c 'cd frontend && npx --no-install oxlint'
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+      - id: gitleaks
+        name: gitleaks (staged secrets scan)
+        language: system
+        # Binary comes from the image (pinned v8.30.1) — the official
+        # gitleaks pre-commit repo entry is language:golang and would make
+        # pre-commit build from source. Scans the git index directly, so
+        # pre-commit's file filtering does not apply.
+        entry: gitleaks git --pre-commit --redact --staged --verbose
+        pass_filenames: false
