@@ -22,7 +22,7 @@ on:
     workflow_dispatch:
         inputs:
             tag:
-                description: 'Git tag to build and deploy (empty = ref the run targets)'
+                description: 'Release tag (v*) to build and deploy (empty = ref the run targets)'
                 required: false
                 type: string
 
@@ -41,12 +41,31 @@ jobs:
         env:
             IMAGE: ${{ vars.IMAGE_REF || 'ghcr.io/nkbooth/netroll' }}
         outputs:
+            ref: ${{ steps.ref.outputs.ref }}
             tag: ${{ steps.vars.outputs.tag }}
             digest: ${{ steps.push.outputs.digest }}
         steps:
+            # hero-production admits only `v*` tags, but it judges the ref the
+            # run started on, not what a step checks out. A dispatch on tag
+            # v1.0.0 with `tag: main` would pass the environment and deploy
+            # main, so a requested tag must be a `v*` name, and it is checked
+            # out as refs/tags/<tag>, which fails when no such tag exists.
+            - id: ref
+              env:
+                  INPUT_TAG: ${{ inputs.tag }}
+              run: |
+                  if [[ -z "$INPUT_TAG" ]]; then
+                      echo "ref=$GITHUB_REF" >> "$GITHUB_OUTPUT"
+                  elif [[ "$INPUT_TAG" =~ ^v[0-9A-Za-z._-]+$ ]]; then
+                      echo "ref=refs/tags/$INPUT_TAG" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "not a release tag: $INPUT_TAG (want v*)" >&2
+                      exit 1
+                  fi
+
             - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
-                  ref: ${{ inputs.tag || github.ref }}
+                  ref: ${{ steps.ref.outputs.ref }}
                   persist-credentials: false
 
             # The tag names the image and the SBOMs, so it is checked against
@@ -198,7 +217,7 @@ jobs:
         steps:
             - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
-                  ref: ${{ inputs.tag || github.ref }}
+                  ref: ${{ needs.build.outputs.ref }}
                   persist-credentials: false
 
             - name: Load deploy credentials from 1Password
