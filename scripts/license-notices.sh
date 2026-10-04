@@ -7,7 +7,7 @@
 # claims fails, so a new kind of file is a decision rather than a silent skip.
 #
 #   scripts/license-notices.sh check   exit 0 = every source file carries it, 1 = one lacks it or is unclassified
-#   scripts/license-notices.sh apply   add it where missing (nothing is written while a path is unclassified)
+#   scripts/license-notices.sh apply   add it where missing (nothing is written while a path is unclassified or a notice is partial)
 #   exit 2 = bad usage
 set -euo pipefail
 
@@ -19,8 +19,11 @@ MODE="${1:-}"
 
 SPDX="SPDX-License-Identifier: RPL-1.5"
 COPYRIGHT="Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE."
-# A shebang or a doctype has to stay on line 1, so the notice may sit below
-# one; deeper than this it is no longer where a reader looks for it.
+# Any year, so a file first written in a later year still carries the notice.
+COPYRIGHT_RE='Copyright \(C\) [0-9]{4}(-[0-9]{4})? Nick Booth, N1CCK\. See LICENSE\.'
+# A shebang, a doctype or a Containerfile parser directive has to stay first,
+# so the notice may sit below one; deeper than this it is no longer where a
+# reader looks for it.
 HEAD_LINES=5
 
 # Third-party files keep their own licence; NOTICE is the list of them. An
@@ -57,9 +60,17 @@ style_of() {
     esac
 }
 
-has_notice() {
-    local head; head="$(head -n "$HEAD_LINES" "$1")"
-    grep -qF -- "$SPDX" <<< "$head" && grep -qE -- 'Copyright \(C\) [0-9]{4}' <<< "$head"
+# full, none, or partial: one line of the two, or the SPDX line under someone
+# else's copyright. A partial notice is left for a person, because adding the
+# block above it would leave two SPDX lines or claim a file that is not ours.
+notice_state() { # path
+    local head spdx=0 copyright=0
+    head="$(head -n "$HEAD_LINES" "$1")"
+    grep -qF -- "$SPDX" <<< "$head" && spdx=1
+    grep -qE -- "$COPYRIGHT_RE" <<< "$head" && copyright=1
+    if ((spdx && copyright)); then echo full
+    elif ((spdx || copyright)); then echo partial
+    else echo none; fi
 }
 
 notice_block() { # style
@@ -74,33 +85,59 @@ notice_block() { # style
     printf '%s%s%s\n%s%s%s\n' "$open" "$SPDX" "$close" "$open" "$COPYRIGHT" "$close"
 }
 
+# How many leading lines must stay above the notice: an interpreter line, an
+# XML declaration or doctype, or a Containerfile's parser directives, which
+# BuildKit honours only before any other line, comments included.
+kept_lines() { # path
+    local n=0 line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$1" == Containerfile || "$1" == */Containerfile ]] && [[ "$line" =~ ^#[[:space:]]*(syntax|escape|check)= ]]; then
+            n=$((n + 1)); continue
+        fi
+        if ((n == 0)) && [[ "$line" == '#!'* || "$line" == '<?xml'* || "${line,,}" == '<!doctype'* ]]; then n=1; fi
+        break
+    done < "$1"
+    echo "$n"
+}
+
 # Rewritten through `cat >` so the file keeps its mode, executable bits included.
+# Kept lines are re-terminated, so a one-line script with no final newline does
+# not get the notice glued onto its shebang.
 write_notice() { # path style
-    local first tmp
-    first="$(head -n 1 "$1")"
+    local keep tmp kept=()
+    keep="$(kept_lines "$1")"
     tmp="$(mktemp)"
-    if [[ "$first" == '#!/'* || "${first,,}" == '<!doctype'* ]]; then
-        { head -n 1 "$1"; notice_block "$2"; tail -n +2 "$1"; } > "$tmp"
-    else
-        { notice_block "$2"; cat "$1"; } > "$tmp"
-    fi
+    if ((keep > 0)); then mapfile -t -n "$keep" kept < "$1"; fi
+    {
+        if ((keep > 0)); then printf '%s\n' "${kept[@]}"; fi
+        notice_block "$2"
+        tail -n "+$((keep + 1))" "$1"
+    } > "$tmp"
     cat "$tmp" > "$1"
     rm -f "$tmp"
 }
 
 missing=()
+partial=()
 unclassified=()
 declare -A STYLE=()
-while IFS= read -r path; do
+# NUL-separated: git C-quotes a non-ASCII path otherwise, and the quoted name
+# is no file, so it would be skipped rather than checked.
+while IFS= read -r -d '' path; do
     [[ -f "$path" ]] || continue
     style="$(style_of "$path")"
     if [[ -z "$style" ]]; then unclassified+=("$path"); continue; fi
     [[ "$style" == exempt ]] && continue
-    has_notice "$path" || { missing+=("$path"); STYLE[$path]="$style"; }
-done < <(git ls-files)
+    case "$(notice_state "$path")" in
+        full) ;;
+        partial) partial+=("$path") ;;
+        none) missing+=("$path"); STYLE[$path]="$style" ;;
+    esac
+done < <(git ls-files -z)
 
 for path in "${unclassified[@]}"; do echo "$path: unclassified: add it to a class in $0"; done
-if ((${#unclassified[@]} > 0)); then exit 1; fi
+for path in "${partial[@]}"; do echo "$path: a partial or foreign license notice: fix it by hand"; done
+if ((${#unclassified[@]} + ${#partial[@]} > 0)); then exit 1; fi
 
 if [[ "$MODE" == apply ]]; then
     for path in "${missing[@]}"; do write_notice "$path" "${STYLE[$path]}"; done
