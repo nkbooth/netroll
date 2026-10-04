@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/nkbooth/netroll/compare/v1.0.0...v1.0.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* harden the deploy dispatch, settings writes and licence check ([f04e221](https://github.com/nkbooth/netroll/commit/f04e221f65680f5debd09496eb3247a1a35e27b4))
+
 ## [1.0.0]
 
 NetRoll was developed in a private repository through version 1.11.0; this is its first public release.
