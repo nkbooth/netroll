@@ -54,6 +54,12 @@ with_notice() { # comment-open comment-close
     printf '%s%s%s\n%s%s%s\n' "$1" "$SPDX" "$2" "$1" "$COPYRIGHT" "$2"
 }
 
+# Whether a file holds exactly these bytes; `$(cat)` would drop trailing newlines.
+has_bytes() { # path expected
+    local b; b="$(cat "$1"; printf x)"
+    [[ "${b%x}" == "$2" ]]
+}
+
 expect_status() { # name want got
     if [[ "$3" == "$2" ]]; then check "$1" ok; else check "$1" "exit $3, want $2"; fi
 }
@@ -120,18 +126,20 @@ case_apply_writes_each_style() {
     plant Containerfile $'FROM scratch\n'
     local before; before="$(git -C "$REPO" write-tree)"
     expect_status "apply exits 0" 0 "$(notices apply)"
-    local want_rs want_sh want_css want_html want_jinja want_yml
-    want_rs="$(with_notice '// ' '')"$'\n//! Module docs.\npub fn f() {}'
-    want_sh=$'#!/usr/bin/env bash\n'"$(with_notice '# ' '')"$'\necho hi'
-    want_css="$(with_notice '/* ' ' */')"$'\nbody {}'
-    want_html=$'<!doctype html>\n'"$(with_notice '<!-- ' ' -->')"$'\n<html></html>'
-    want_jinja="$(with_notice '{# ' ' #}')"$'\n{% block x %}{% endblock %}'
-    want_yml="$(with_notice '# ' '')"$'\nname: ci'
-    local p got bad=()
-    for p in "src/lib.rs:$want_rs" "run.sh:$want_sh" "style.css:$want_css" "index.html:$want_html" \
-        "overrides/partials/x.html:$want_jinja" "ci.yml:$want_yml"; do
-        got="$(cat "$REPO/${p%%:*}")"
-        [[ "$got" == "${p#*:}" ]] || bad+=("${p%%:*}")
+    local -A want=(
+        [src/lib.rs]="$(with_notice '// ' '')"$'\n//! Module docs.\npub fn f() {}\n'
+        [src/view.tsx]="$(with_notice '// ' '')"$'\nexport const A = 1;\n'
+        [run.sh]=$'#!/usr/bin/env bash\n'"$(with_notice '# ' '')"$'\necho hi\n'
+        [style.css]="$(with_notice '/* ' ' */')"$'\nbody {}\n'
+        [index.html]=$'<!doctype html>\n'"$(with_notice '<!-- ' ' -->')"$'\n<html></html>\n'
+        [overrides/partials/x.html]="$(with_notice '{# ' ' #}')"$'\n{% block x %}{% endblock %}\n'
+        [mail/a.mjml]="$(with_notice '<!-- ' ' -->')"$'\n<mjml></mjml>\n'
+        [ci.yml]="$(with_notice '# ' '')"$'\nname: ci\n'
+        [Containerfile]="$(with_notice '# ' '')"$'\nFROM scratch\n'
+    )
+    local p bad=()
+    for p in "${!want[@]}"; do
+        has_bytes "$REPO/$p" "${want[$p]}" || bad+=("$p")
     done
     if ((${#bad[@]} == 0)); then check "apply writes each comment style in place" ok; else check "apply writes each comment style in place" "${bad[*]}"; fi
     git -C "$REPO" add -A
@@ -144,13 +152,15 @@ case_apply_is_idempotent_and_spares_exempt_files() {
     plant src/lib.rs $'pub fn f() {}\n'
     plant vendor/lib.min.js $'!function(){}\n'
     plant backend/migrations/20260715000000_initial_schema.sql $'CREATE TABLE t ();\n'
-    notices apply > /dev/null
+    expect_status "the first apply exits 0" 0 "$(notices apply)"
+    has_bytes "$REPO/src/lib.rs" "$(with_notice '// ' '')"$'\npub fn f() {}\n' \
+        && check "the first apply writes the notice" ok || check "the first apply writes the notice" "src/lib.rs unchanged"
     git -C "$REPO" add -A
     local once; once="$(git -C "$REPO" write-tree)"
-    notices apply > /dev/null
+    expect_status "a second apply exits 0" 0 "$(notices apply)"
     git -C "$REPO" add -A
     if [[ "$(git -C "$REPO" write-tree)" == "$once" ]]; then check "a second apply changes nothing" ok; else check "a second apply changes nothing" "tree moved"; fi
-    if [[ "$(cat "$REPO/vendor/lib.min.js")" == '!function(){}' && "$(cat "$REPO/backend/migrations/20260715000000_initial_schema.sql")" == 'CREATE TABLE t ();' ]]; then
+    if has_bytes "$REPO/vendor/lib.min.js" $'!function(){}\n' && has_bytes "$REPO/backend/migrations/20260715000000_initial_schema.sql" $'CREATE TABLE t ();\n'; then
         check "apply leaves vendored and frozen files byte-identical" ok
     else
         check "apply leaves vendored and frozen files byte-identical" "an exempt file was written"
@@ -162,7 +172,48 @@ case_apply_refuses_unclassified() {
     plant src/lib.rs $'pub fn f() {}\n'
     plant data.xyz $'something\n'
     expect_status "apply refuses while a file is unclassified" 1 "$(notices apply)"
-    if [[ "$(cat "$REPO/src/lib.rs")" == 'pub fn f() {}' ]]; then check "a refused apply writes nothing" ok; else check "a refused apply writes nothing" "src/lib.rs was written"; fi
+    if has_bytes "$REPO/src/lib.rs" $'pub fn f() {}\n'; then check "a refused apply writes nothing" ok; else check "a refused apply writes nothing" "src/lib.rs was written"; fi
+}
+
+# git quotes a non-ASCII path by default; the check must still see the file.
+case_non_ascii_path_is_checked() {
+    fresh_repo
+    plant 'src/caf'$'\xc3\xa9''.rs' $'pub fn f() {}\n'
+    expect_status "a non-ASCII path without the notice fails check" 1 "$(notices check)"
+}
+
+# Lines that only work as the first line(s) of a file keep their place.
+case_apply_keeps_first_line_directives() {
+    fresh_repo
+    plant spaced.sh $'#! /usr/bin/env bash\necho hi\n'
+    plant bare.sh '#!/bin/sh'
+    plant page.html $'<?xml version="1.0"?>\n<html></html>\n'
+    plant docker/Containerfile $'# syntax=docker/dockerfile:1\n# escape=`\nFROM scratch\n'
+    expect_status "apply exits 0 with first-line directives" 0 "$(notices apply)"
+    local -A want=(
+        [spaced.sh]=$'#! /usr/bin/env bash\n'"$(with_notice '# ' '')"$'\necho hi\n'
+        [bare.sh]=$'#!/bin/sh\n'"$(with_notice '# ' '')"$'\n'
+        [page.html]=$'<?xml version="1.0"?>\n'"$(with_notice '<!-- ' ' -->')"$'\n<html></html>\n'
+        [docker/Containerfile]=$'# syntax=docker/dockerfile:1\n# escape=`\n'"$(with_notice '# ' '')"$'\nFROM scratch\n'
+    )
+    local p bad=()
+    for p in "${!want[@]}"; do has_bytes "$REPO/$p" "${want[$p]}" || bad+=("$p"); done
+    if ((${#bad[@]} == 0)); then check "apply writes below first-line directives" ok; else check "apply writes below first-line directives" "${bad[*]}"; fi
+}
+
+case_foreign_copyright_fails() {
+    fresh_repo
+    plant src/lib.rs $'// '"$SPDX"$'\n// Copyright (C) 2019 Someone Else\npub fn f() {}\n'
+    expect_status "someone else's copyright line is not the notice" 1 "$(notices check)"
+}
+
+case_partial_notice_is_refused_not_doubled() {
+    fresh_repo
+    plant src/lib.rs $'// '"$SPDX"$'\npub fn f() {}\n'
+    expect_status "a partial notice fails check" 1 "$(notices check)"
+    expect_status "apply refuses a partial notice" 1 "$(notices apply)"
+    has_bytes "$REPO/src/lib.rs" $'// '"$SPDX"$'\npub fn f() {}\n' \
+        && check "a refused partial notice is left as it was" ok || check "a refused partial notice is left as it was" "src/lib.rs was written"
 }
 
 case_missing_notice_fails
@@ -174,6 +225,10 @@ case_continuation_lines_are_vendored_too
 case_apply_writes_each_style
 case_apply_is_idempotent_and_spares_exempt_files
 case_apply_refuses_unclassified
+case_non_ascii_path_is_checked
+case_apply_keeps_first_line_directives
+case_foreign_copyright_fails
+case_partial_notice_is_refused_not_doubled
 
 if ((failures > 0)); then
     echo "test-license-notices: $failures case(s) misbehaved"

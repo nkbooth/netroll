@@ -163,36 +163,45 @@ write_security_updates() { gh api -X PUT "repos/$REPO/automated-security-fixes" 
 # is ignored: comparing the whole sorted type list meant one extra rule added
 # in the web UI made `apply` report DRIFT forever, since it never removes rules.
 #
+# It must also be enforced and aimed at `main`: a ruleset left disabled after
+# a maintenance merge, or retargeted, still carries every rule and enforces
+# none of them.
+#
 # The pull request needs no approval because a sole maintainer cannot approve
 # their own PR, so a count of one would wedge every merge. The gate is that
 # `main` changes only through a PR whose six checks are green.
 ruleset_id() { gh_get "repos/$REPO/rulesets" ".[] | select(.name==\"$1\") | .id"; }
+MAIN_REFS='["~DEFAULT_BRANCH", "~ALL", "refs/heads/main"]'
 read_main_ruleset() {
     local id; id="$(ruleset_id "$RULESET_NAME")" || return 1
     if [[ -z "$id" ]]; then echo "absent"; return 0; fi
     gh_get "repos/$REPO/rulesets/$id" '
         def has($t): any(.rules[]; .type == $t);
-        "deletion=\(has("deletion")) non_fast_forward=\(has("non_fast_forward")) approvals=" +
+        def on_main: (.conditions.ref_name.include // []) as $in | (.conditions.ref_name.exclude // []) as $ex
+            | any($in[]; IN('"$MAIN_REFS"'[])) and all($ex[]; IN('"$MAIN_REFS"'[]) | not);
+        "enforcement=\(.enforcement) on_main=\(on_main) deletion=\(has("deletion")) non_fast_forward=\(has("non_fast_forward")) approvals=" +
         ([.rules[] | select(.type=="pull_request") | .parameters.required_approving_review_count | tostring]
             | if length == 0 then "no-pr" else join(",") end) + " checks=" +
         ([.rules[] | select(.type=="required_status_checks")
                    | .parameters.required_status_checks[].context] | sort | join(","))'
 }
-want_main_ruleset="deletion=true non_fast_forward=true approvals=0 checks=audit,backend,commitlint,deploy-smoke,frontend,gitleaks"
+want_main_ruleset="enforcement=active on_main=true deletion=true non_fast_forward=true approvals=0 checks=audit,backend,commitlint,deploy-smoke,frontend,gitleaks"
 write_main_ruleset() {
-    local id; id="$(ruleset_id "$RULESET_NAME")"
+    local id; id="$(ruleset_id "$RULESET_NAME")" || return 1
     if [[ -z "$id" ]]; then
         echo "ERROR main_ruleset: no ruleset named '$RULESET_NAME' on $REPO. Rulesets do not export;" >&2
         echo "      create it with the required status checks first, then re-run." >&2
         return 1
     fi
-    # Carry name/target/enforcement/conditions/bypass_actors verbatim; keep every
+    # Carry name/target/bypass_actors verbatim and enforce it; keep every
     # existing rule (the status-check contexts are read, never hard-coded), add
     # the two branch-protection rules, and set the PR rule's approval count while
-    # keeping any other PR parameter already chosen.
+    # keeping any other PR parameter already chosen. The default branch is added
+    # to the targets, and no existing target is removed.
     gh api "repos/$REPO/rulesets/$id" | jq '{
-        name, target, enforcement,
-        conditions,
+        name, target, enforcement: "active",
+        conditions: (.conditions | .ref_name.include = ((.ref_name.include // []) + ["~DEFAULT_BRANCH"] | unique)
+                                 | .ref_name.exclude = ((.ref_name.exclude // []) - ["~DEFAULT_BRANCH", "refs/heads/main"])),
         bypass_actors: (.bypass_actors // []),
         rules: ((.rules | map(select(.type != "non_fast_forward" and .type != "deletion" and .type != "pull_request")))
                 + [{type: "non_fast_forward"}, {type: "deletion"},
@@ -240,7 +249,8 @@ read_release_tags() {
 }
 want_release_tags="$(if [[ "${RELEASE_APP_ID:-}" =~ ^[0-9]+$ ]]; then release_tags_spec | jq -r "$RELEASE_TAGS_SUMMARY"; fi)"
 write_release_tags() {
-    local id; id="$(ruleset_id "$RELEASE_RULESET_NAME")"
+    # A failed lookup is not "absent": POSTing then would create a duplicate.
+    local id; id="$(ruleset_id "$RELEASE_RULESET_NAME")" || return 1
     if [[ -z "$id" ]]; then
         release_tags_spec | gh api -X POST "repos/$REPO/rulesets" --input - --silent
     else
@@ -285,16 +295,16 @@ write_hero_environment() {
         wait_timer: 0,
         reviewers: [{type: "User", id: $id}],
         deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}' \
-        | gh api -X PUT "repos/$REPO/$ENV_PATH_HERO" --input - --silent
+        | gh api -X PUT "repos/$REPO/$ENV_PATH_HERO" --input - --silent || return 1
     local policies stale rc
     policies="$(gh_get "repos/$REPO/$ENV_PATH_HERO/deployment-branch-policies" '.branch_policies')" || {
         rc=$?; [[ "$rc" -eq 44 ]] || return "$rc"; policies='[]'; }
     for stale in $(jq -r '.[] | select(.type != "tag" or .name != "v*") | .id' <<< "$policies"); do
-        gh api -X DELETE "repos/$REPO/$ENV_PATH_HERO/deployment-branch-policies/$stale" --silent
+        gh api -X DELETE "repos/$REPO/$ENV_PATH_HERO/deployment-branch-policies/$stale" --silent || return 1
     done
     if [[ "$(jq '[.[] | select(.type == "tag" and .name == "v*")] | length' <<< "$policies")" == 0 ]]; then
         jq -n '{name: "v*", type: "tag"}' \
-            | gh api -X POST "repos/$REPO/$ENV_PATH_HERO/deployment-branch-policies" --input - --silent
+            | gh api -X POST "repos/$REPO/$ENV_PATH_HERO/deployment-branch-policies" --input - --silent || return 1
     fi
 }
 
@@ -338,7 +348,9 @@ run_one() {
     have="$("read_$name")" || { report ERROR "$name" "unreadable" "$want"; return 0; }
     if [[ "$have" == "$want" ]]; then report OK "$name" "$have" "$want"; return 0; fi
     if [[ "$MODE" == "check" ]]; then report DRIFT "$name" "$have" "$want"; return 0; fi
-    if ! "write_$name"; then report DRIFT "$name" "$have" "$want"; return 0; fi
+    # `write_*` runs in a condition, where errexit is off, so each one returns
+    # its own failure rather than relying on `set -e`.
+    if ! "write_$name"; then report DRIFT "$name" "$have" "$want (write failed)"; return 0; fi
     have="$("read_$name")" || { report ERROR "$name" "unreadable after write" "$want"; return 0; }
     if [[ "$have" == "$want" ]]; then report OK "$name" "$have" "$want (applied)"; else report DRIFT "$name" "$have" "$want"; fi
 }
