@@ -14,17 +14,20 @@ name: ci
 # link check of the result, and a smoke test that boots the release image.
 #
 # Pushes run them because every pushed branch is public the moment it lands:
-# a branch is checked before anyone opens a PR from it. On a PR, the
-# pull_request run is the one the ruleset gates on. No job needs a secret, so
-# a fork's PR runs every gate. The weekly schedule re-checks advisories on
-# main.
+# a branch is checked before anyone opens a PR from it. On a PR, the ruleset
+# reads BOTH runs: a required check red in the push run blocks the merge even
+# when the pull_request run is green. That is why Dependabot's branches get no
+# push run: commitlint can only tell a Dependabot PR by its author, which a
+# push event does not carry, so their push run would always be red. Their PR
+# run still runs every gate. No job needs a secret, so a fork's PR runs every
+# gate. The weekly schedule re-checks advisories on main.
 #
 # Lockfiles are law: npm ci (never npm install) and cargo --locked — drift
 # here means a broken pin, so fail loudly.
 
 on:
     push:
-        branches: ['**']
+        branches: ['**', '!dependabot/**']
     pull_request:
     # Weekly advisory re-check against main, so a newly published advisory
     # surfaces without a push or PR. Only the audit job runs on this trigger.
