@@ -402,10 +402,13 @@ jobs:
                   fetch-depth: 0
 
             # configFile is explicit: the action's default is a `.mjs` path it
-            # only falls back from to find this repo's `.cjs`.
+            # only falls back from to find this repo's `.cjs`. A pull request
+            # GitHub records as opened by Dependabot gets the config that lifts
+            # the body line limit its compare URLs exceed. The key is the PR's
+            # author, which no commit message, trailer or branch name can set.
             - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
               with:
-                  configFile: ./commitlint.config.cjs
+                  configFile: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && './commitlint.dependabot.cjs' || './commitlint.config.cjs' }}
 
             # The PR TITLE, not just the commits. This repo squash-merges, so
             # the title becomes the subject of the ONLY commit that reaches

@@ -415,14 +415,15 @@ push_hook "pre-push: a commit that cannot be listed blocks the push" 1 \
 
 # The hook's own runner: a host commitlint, else its pinned image.
 COMMITLINT_IMAGE="$(sed -n 's/^COMMITLINT_IMAGE="\(.*\)"$/\1/p' "$ROOT/scripts/git-hooks/commit-msg")"
-commitlint_run() {
+commitlint_run() { # [config]
+    local config="${1:-commitlint.config.cjs}"
     if command -v commitlint >/dev/null 2>&1; then
-        (cd "$ROOT" && commitlint --config commitlint.config.cjs)
+        (cd "$ROOT" && commitlint --config "$config")
     elif command -v podman >/dev/null 2>&1; then
         podman run --rm -i --security-opt label=disable -v "$ROOT:/repo:ro" -w /repo \
-            "$COMMITLINT_IMAGE" --config commitlint.config.cjs
+            "$COMMITLINT_IMAGE" --config "$config"
     elif command -v docker >/dev/null 2>&1; then
-        docker run --rm -i -v "$ROOT:/repo:ro" -w /repo "$COMMITLINT_IMAGE" --config commitlint.config.cjs
+        docker run --rm -i -v "$ROOT:/repo:ro" -w /repo "$COMMITLINT_IMAGE" --config "$config"
     else
         echo "neither commitlint, podman nor docker is available" >&2
         return 2
@@ -430,9 +431,9 @@ commitlint_run() {
 }
 
 # Status 1 is commitlint's rejection; anything else means it did not run.
-expect_message() {
-    local name="$1" want="$2" message="$3" status=0
-    commitlint_run <<<"$message" >"$WORK/out" 2>&1 || status=$?
+expect_message() { # name want message [config]
+    local name="$1" want="$2" message="$3" config="${4:-}" status=0
+    commitlint_run "$config" <<<"$message" >"$WORK/out" 2>&1 || status=$?
     if [[ "$status" -ne "$want" ]]; then fail "$name" "expected exit $want, got $status"; return; fi
     pass "$name"
 }
@@ -450,6 +451,16 @@ expect_message "commitlint: a local merge into the default branch passes" 0 "Mer
 expect_message "commitlint: a local merge of two branches passes" 0 "Merge branches 'a', 'b' and 'c' into feat/x"
 expect_message "commitlint: a bare merged name cannot be a citation" 1 "Merge A""C5 into main"
 expect_message "commitlint: a merge-shaped subject with prose cannot carry a citation" 1 "Merge branch 'x' and fix ${STORY} 13.4"
+
+# Dependabot writes a compare URL longer than the body limit into every
+# version-update PR. CI lints a PR that GitHub records as Dependabot's with
+# commitlint.dependabot.cjs, which lifts that one rule and no other.
+DEPENDABOT_BODY="$(printf 'ci(deps): bump example/action from 1.0.0 to 1.1.0\n\nBumps example/action.\n- [Commits](https://github.com/example/action/compare/%s...%s)' \
+    "$(printf 'a%.0s' {1..40})" "$(printf 'b%.0s' {1..40})")"
+expect_message "commitlint: a Dependabot PR may carry a long body line" 0 "$DEPENDABOT_BODY" commitlint.dependabot.cjs
+expect_message "commitlint: anyone else's long body line is refused" 1 "$DEPENDABOT_BODY"
+expect_message "commitlint: a Dependabot PR still cannot cite a plan" 1 "$(printf 'ci(deps): bump x for %s 13.1' "$STORY")" commitlint.dependabot.cjs
+expect_message "commitlint: a Dependabot PR is still conventional" 1 "Bump example/action from 1.0.0 to 1.1.0" commitlint.dependabot.cjs
 
 echo
 if [[ "$failures" -ne 0 ]]; then

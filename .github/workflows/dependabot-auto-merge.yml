@@ -43,8 +43,11 @@ jobs:
             - if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
               # --squash because the repo squash-merges with
               # squash_merge_commit_title COMMIT_OR_PR_TITLE: the conventional
-              # PR title becomes the one commit that reaches main.
-              run: gh pr merge --auto --squash "$PR_URL"
+              # PR title becomes the one commit that reaches main. --body
+              # because the default body is Dependabot's, whose compare URL
+              # breaks the body line limit that main's push run enforces with
+              # no exemption. A major merged by hand needs the same --body.
+              run: gh pr merge --auto --squash --body "Release notes and commits are on the pull request." "$PR_URL"
               env:
                   PR_URL: ${{ github.event.pull_request.html_url }}
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
