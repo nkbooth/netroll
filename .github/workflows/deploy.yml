@@ -251,7 +251,7 @@ jobs:
                   oauth-secret: ${{ env.TS_OAUTH_SECRET }}
                   tags: tag:ci
 
-            - uses: 1password/install-cli-action@143a85f84a90555d121cde2ff5872e393a47ab9f # v1.0.0
+            - uses: 1password/install-cli-action@1a3160d5e9de1ae0803eaa08a88746f5ae3daa50 # v4.1.0
 
             # IMAGE_TAG carries the digest as well as the tag: a redeploy of an
             # existing tag re-pushes it, and the rollback's .env.previous must
