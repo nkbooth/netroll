@@ -21,6 +21,10 @@ mermaid 11.16.1
   License:   MIT
   Copyright: Copyright (c) 2014 - 2022 Knut Sveidqvist
              (from the LICENSE file inside the 11.16.1 tarball)
+  Note:      the bundle includes third-party components, among them
+             DOMPurify, lodash, js-yaml and cytoscape, whose own licence
+             notices are kept inside the file, unmodified. DOMPurify is
+             dual-licensed and is used here under Apache-2.0.
 
 Material for MkDocs 9.7.7
   Files:     overrides/partials/javascripts/base.html
