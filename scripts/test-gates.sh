@@ -431,10 +431,13 @@ commitlint_run() { # [config]
 }
 
 # Status 1 is commitlint's rejection; anything else means it did not run.
-expect_message() { # name want message [config]
-    local name="$1" want="$2" message="$3" config="${4:-}" status=0
+# A rule name pins WHICH rule refused: a case about one lifted rule must not
+# pass on another rule's rejection.
+expect_message() { # name want message [config] [rule]
+    local name="$1" want="$2" message="$3" config="${4:-}" rule="${5:-}" status=0
     commitlint_run "$config" <<<"$message" >"$WORK/out" 2>&1 || status=$?
     if [[ "$status" -ne "$want" ]]; then fail "$name" "expected exit $want, got $status"; return; fi
+    if [[ -n "$rule" ]] && ! command grep -qF "[$rule]" "$WORK/out"; then fail "$name" "expected rule $rule"; return; fi
     pass "$name"
 }
 
@@ -458,9 +461,9 @@ expect_message "commitlint: a merge-shaped subject with prose cannot carry a cit
 DEPENDABOT_BODY="$(printf 'ci(deps): bump example/action from 1.0.0 to 1.1.0\n\nBumps example/action.\n- [Commits](https://github.com/example/action/compare/%s...%s)' \
     "$(printf 'a%.0s' {1..40})" "$(printf 'b%.0s' {1..40})")"
 expect_message "commitlint: a Dependabot PR may carry a long body line" 0 "$DEPENDABOT_BODY" commitlint.dependabot.cjs
-expect_message "commitlint: anyone else's long body line is refused" 1 "$DEPENDABOT_BODY"
-expect_message "commitlint: a Dependabot PR still cannot cite a plan" 1 "$(printf 'ci(deps): bump x for %s 13.1' "$STORY")" commitlint.dependabot.cjs
-expect_message "commitlint: a Dependabot PR is still conventional" 1 "Bump example/action from 1.0.0 to 1.1.0" commitlint.dependabot.cjs
+expect_message "commitlint: anyone else's long body line is refused" 1 "$DEPENDABOT_BODY" "" body-max-line-length
+expect_message "commitlint: a Dependabot PR still cannot cite a plan" 1 "$(printf 'ci(deps): bump x for %s 13.1' "$STORY")" commitlint.dependabot.cjs no-story-refs
+expect_message "commitlint: a Dependabot PR is still conventional" 1 "Bump example/action from 1.0.0 to 1.1.0" commitlint.dependabot.cjs type-empty
 
 echo
 if [[ "$failures" -ne 0 ]]; then

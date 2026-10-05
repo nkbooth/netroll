@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: RPL-1.5
 # Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
 # Host-side commit-msg hook: reject messages that violate Conventional
-# Commits, using the same commitlint.config.cjs the CI commitlint job reads —
-# a bad message fails at commit time, not in the PR. Wired via `git config
+# Commits, using the same commitlint.config.cjs the CI commitlint job reads
+# for every PR not opened by Dependabot — a bad message fails at commit time, not in the PR. Wired via `git config
 # core.hooksPath scripts/git-hooks` (one-time, documented in CONTRIBUTING.md, via scripts/bootstrap-hooks.sh).
 #
 # Container-first: the config extends @commitlint/config-conventional and the
