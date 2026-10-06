@@ -2,8 +2,8 @@
 # Copyright (C) 2026 Nick Booth, N1CCK. See LICENSE.
 name: ci
 
-# Quality and security gates, run on every push to any branch and on every
-# pull request: fmt, clippy -D warnings (with the workspace lints), cargo test
+# Quality and security gates, run on every push to any branch but
+# Dependabot's and on every pull request: fmt, clippy -D warnings (with the workspace lints), cargo test
 # (incl. the testcontainers-backed Postgres job on the runner's Docker daemon),
 # oxlint, tsc/vite build, vitest, commitlint, gitleaks and the public-tree
 # hygiene scripts, cargo-audit, cargo-deny, and npm audit (frontend/ and
@@ -19,7 +19,9 @@ name: ci
 # when the pull_request run is green. That is why Dependabot's branches get no
 # push run: commitlint can only tell a Dependabot PR by its author, which a
 # push event does not carry, so their push run would always be red. Their PR
-# run still runs every gate. No job needs a secret, so a fork's PR runs every
+# run still runs every gate. The exclusion is by branch name, so a branch a
+# person pushes under dependabot/ is not checked until a PR is opened from it.
+# No job needs a secret, so a fork's PR runs every
 # gate. The weekly schedule re-checks advisories on main.
 #
 # Lockfiles are law: npm ci (never npm install) and cargo --locked — drift
@@ -53,8 +55,8 @@ env:
 # six checks backend/frontend/commitlint/gitleaks/audit/deploy-smoke by name —
 # renaming any of them silently un-gates merges, and a new job gates nothing
 # until it is added to the ruleset and to the want list in
-# scripts/github-settings.sh. Skipped-on-schedule is fine (the ruleset
-# evaluates PR events); renamed is not. The `e2e` job is deliberately NOT in
+# scripts/github-settings.sh. Skipped-on-schedule is fine (no pull request
+# waits on a schedule run); renamed is not. The `e2e` job is deliberately NOT in
 # that required set — it is informational until the ruleset is amended to
 # require it (see the job's own note).
 #

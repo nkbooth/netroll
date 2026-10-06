@@ -22,6 +22,13 @@ name: dependabot-auto-merge
 #
 # Requires the repository setting `allow_auto_merge: true`, applied by
 # scripts/github-settings.sh.
+#
+# A major, or any Dependabot PR this job did not merge, is merged by hand with
+# the same body as the step below:
+#   gh pr merge --squash --body "Release notes and commits are on the pull request." <url>
+# The web UI's default squash body is Dependabot's, whose compare URL breaks
+# the body line limit main's push run enforces, so that commit reds main's
+# commitlint after the merge, when it can no longer be blocked.
 
 on: pull_request
 
@@ -46,7 +53,8 @@ jobs:
               # PR title becomes the one commit that reaches main. --body
               # because the default body is Dependabot's, whose compare URL
               # breaks the body line limit that main's push run enforces with
-              # no exemption. A major merged by hand needs the same --body.
+              # no exemption. A major merged by hand needs the same --body
+              # (the header gives the command).
               run: gh pr merge --auto --squash --body "Release notes and commits are on the pull request." "$PR_URL"
               env:
                   PR_URL: ${{ github.event.pull_request.html_url }}
