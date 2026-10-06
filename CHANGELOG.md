@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/nkbooth/netroll/compare/v1.0.1...v1.0.2) (2026-10-06)
+
+
+### Documentation
+
+* name the components bundled inside the vendored mermaid file ([#10](https://github.com/nkbooth/netroll/issues/10)) ([070340a](https://github.com/nkbooth/netroll/commit/070340a99e28768b36302eab79dc25e7c8e7ab0e))
+
 ## [1.0.1](https://github.com/nkbooth/netroll/compare/v1.0.0...v1.0.1) (2026-10-04)
 
 
