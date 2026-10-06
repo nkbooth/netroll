@@ -386,7 +386,7 @@ jobs:
             # Chromium + its OS libraries (the runner has root; the dev
             # container does not, so this lane is CI-run only for now).
             - name: install Playwright chromium
-              run: npx playwright install --with-deps chromium
+              run: npx --no-install playwright install --with-deps chromium
 
             - name: playwright test
               run: npm run test:e2e
