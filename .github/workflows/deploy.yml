@@ -212,6 +212,7 @@ jobs:
         permissions:
             contents: read
             packages: read
+            id-token: write # Tailscale OIDC; minted only after the environment's reviewer approves
         env:
             IMAGE: ${{ vars.IMAGE_REF || 'ghcr.io/nkbooth/netroll' }}
         steps:
@@ -232,24 +233,16 @@ jobs:
                   DEPLOY_SSH_KEY: op://netroll-deploy/deploy-ssh/private-key
                   DEPLOY_HOST_KEY: op://netroll-deploy/deploy-ssh/host-key
 
-            # Optional: a host reachable only over Tailscale. `secrets` can't
-            # appear in `if:`, so the client ID variable is the switch.
-            - name: Load the Tailscale secret
-              if: vars.TS_OAUTH_CLIENT_ID != ''
-              uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0 # v2.0.0
-              with:
-                  export-env: true
-              env:
-                  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-                  TS_OAUTH_SECRET: op://netroll-deploy/tailscale/client-secret
-
+            # Optional: a host reachable only over Tailscale, joined via OIDC
+            # federation so no Tailscale secret is stored anywhere. The client ID
+            # variable is the switch; TS_TAGS must be tags the credential may apply.
             - name: Join the Tailscale network
-              if: vars.TS_OAUTH_CLIENT_ID != ''
-              uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3.3.0
+              if: vars.TS_OIDC_CLIENT_ID != ''
+              uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
               with:
-                  oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
-                  oauth-secret: ${{ env.TS_OAUTH_SECRET }}
-                  tags: tag:ci
+                  oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+                  audience: ${{ vars.TS_OIDC_AUDIENCE }}
+                  tags: ${{ vars.TS_TAGS }}
 
             - uses: 1password/install-cli-action@1a3160d5e9de1ae0803eaa08a88746f5ae3daa50 # v4.1.0
 
