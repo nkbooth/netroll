@@ -63,7 +63,7 @@ jobs:
                       exit 1
                   fi
 
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ steps.ref.outputs.ref }}
                   persist-credentials: false
@@ -129,7 +129,7 @@ jobs:
             # trusted workflow on this repository could have written. zizmor
             # assumes setup-node v5's implicit cache; this v4 pin has no
             # `package-manager-cache` input and caches only when `cache:` is set.
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v4.4.0 # zizmor: ignore[cache-poisoning]
               with:
                   node-version: 22
 
@@ -174,7 +174,7 @@ jobs:
                   if-no-files-found: error
 
             - id: push
-              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+              uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
               with:
                   context: .
                   file: Containerfile
@@ -187,7 +187,7 @@ jobs:
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
 
-            - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6 # v1.2.4
+            - uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4 # v2.0.2
 
             # Attach after push: referrers need the subject image present in
             # the registry. The docker/login-action credentials above also
@@ -216,7 +216,7 @@ jobs:
         env:
             IMAGE: ${{ vars.IMAGE_REF || 'ghcr.io/nkbooth/netroll' }}
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ needs.build.outputs.ref }}
                   persist-credentials: false

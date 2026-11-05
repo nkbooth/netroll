@@ -9,5 +9,9 @@
   },
   "dependencies": {
     "mjml": "5.4.0"
+  },
+  "overrides": {
+    "minimatch": "11.0.1",
+    "glob": "14.0.2"
   }
 }
