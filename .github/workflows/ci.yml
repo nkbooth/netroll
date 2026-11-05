@@ -101,7 +101,7 @@ jobs:
                     --health-timeout 5s
                     --health-retries 10
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             # ubuntu-latest ships with ~14GB free on the root disk after its
             # preinstalled toolchains (.NET, Android SDK, GHC, CodeQL) — none
@@ -147,7 +147,7 @@ jobs:
             # first, and a broken frontend build is already the `frontend` job's
             # to report. Steps in `backend`, never a new job: the `main-ci-gate`
             # ruleset requires `backend` by name (see the note above `jobs:`).
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 22
                   cache: npm
@@ -268,9 +268,9 @@ jobs:
             run:
                 working-directory: frontend
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 22
                   cache: npm
@@ -372,9 +372,9 @@ jobs:
             run:
                 working-directory: frontend
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 22
                   cache: npm
@@ -402,7 +402,7 @@ jobs:
             contents: read
             pull-requests: read
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
 
@@ -446,7 +446,7 @@ jobs:
         if: github.event_name != 'schedule' && !github.event.deleted
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0
 
@@ -535,7 +535,7 @@ jobs:
                     --health-timeout 5s
                     --health-retries 10
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             # `config -q` exits 0 while warning that a variable is unset and
             # will be an empty string, which is a broken deploy all the same,
@@ -563,7 +563,7 @@ jobs:
             # Reads the release build's cache and never writes it, so a branch
             # cannot evict main's layers.
             - name: build the release image
-              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+              uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
               with:
                   context: .
                   file: Containerfile
@@ -596,7 +596,7 @@ jobs:
         if: ${{ !github.event.deleted }}
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
               with:
@@ -623,7 +623,7 @@ jobs:
             # of lockfile validity (confirmed clean locally on npm 11).
             # `frontend`/`e2e` already pin Node 22 for this reason; `audit`
             # never needed setup-node until the old endpoint started failing.
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 22
 
@@ -670,7 +670,7 @@ jobs:
                       jq -e '.components | length > 0' "$f" > /dev/null
                   done
 
-            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               if: github.event_name == 'schedule'
               with:
                   node-version: 22
