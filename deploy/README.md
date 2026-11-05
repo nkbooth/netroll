@@ -162,7 +162,6 @@ masked in the run log, variables are not, and a public repository's run logs are
     |---|---|---|
     | `deploy-target` | `host`, `user`, `path` | the workflow: the SSH host, the deploy user, and the deploy directory relative to that user's home |
     | `deploy-ssh` | `private-key`, `host-key` | the workflow: an SSH private key the deploy user accepts, and the host's full `known_hosts` line |
-    | `tailscale` | `client-secret` | the workflow, only when `TS_OAUTH_CLIENT_ID` is set |
     | `database` | `url`, `password` | `.env`: `DATABASE_URL` (host `postgres`) and `POSTGRES_PASSWORD` |
     | `smtp` | `host`, `port`, `username`, `password` | `.env`: the `SMTP_*` values |
     | `kek` | `key` | `.env`: `KEK` |
@@ -182,8 +181,13 @@ masked in the run log, variables are not, and a public repository's run logs are
    loaded until someone approves the run.
 4. **Set the repository variable `IMAGE_REF`** to an image repository your workflow can push to,
    such as `ghcr.io/<owner>/netroll`. The default is the upstream repository, which a fork can't
-   push to. If the host is reachable only over Tailscale, also set `TS_OAUTH_CLIENT_ID` to an
-   OAuth client allowed to tag nodes `tag:ci`, and put its secret in the `tailscale` item.
+   push to. If the host is reachable only over Tailscale, create a Tailscale federated identity
+   credential for GitHub Actions instead of storing a secret. Give it the `auth_keys` scope and
+   the tags the runner should carry. Its subject must be this repository's OIDC subject for the
+   environment, `repo:<owner>/<repo>:environment:hero-production` (repositories using immutable
+   subjects need the `repo:<owner>@<id>/<repo>@<id>:` prefix that
+   `gh api repos/<owner>/<repo>/actions/oidc/customization/sub` reports). Then set
+   `TS_OIDC_CLIENT_ID`, `TS_OIDC_AUDIENCE`, and `TS_TAGS` (comma-separated) from it.
 5. **Prepare the host.** `rollout.sh` needs rootless Podman with `podman compose`, `curl`
    inside the image (it ships one), and a lingering systemd user session for the deploy user
    (`loginctl enable-linger <user>`) so containers and their health checks keep running with
