@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/nkbooth/netroll/compare/v1.0.2...v1.0.3) (2026-11-05)
+
+
+### Bug Fixes
+
+* **deps:** combined Dependabot bumps and audit fixes ([9b1e5ce](https://github.com/nkbooth/netroll/commit/9b1e5cebb76ec9e9d764ba275cf0fb82f857e948))
+* **deps:** patch the RustSec and npm advisories failing the audit check ([f5b2277](https://github.com/nkbooth/netroll/commit/f5b2277a5715e75e1a5ebbd5a40c79bf42743d4f))
+
 ## [1.0.2](https://github.com/nkbooth/netroll/compare/v1.0.1...v1.0.2) (2026-10-06)
 
 
