@@ -121,7 +121,7 @@ jobs:
               with:
                   toolchain: "1.97"
 
-            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+            - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
               with:
                   tool: cargo-cyclonedx
 
