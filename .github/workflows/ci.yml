@@ -598,7 +598,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+            - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
               with:
                   tool: cargo-audit
 
@@ -609,7 +609,7 @@ jobs:
             # Advisories again, plus the licence allow list, crate sources and
             # duplicate versions, all from backend/deny.toml. Here rather than
             # in `backend` so the weekly schedule re-checks advisories too.
-            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+            - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
               with:
                   tool: cargo-deny@0.20.2
 
@@ -651,7 +651,7 @@ jobs:
             # SBOM freshness (scheduled runs only): prove both SBOMs are
             # still producible from main's current lockfiles — the same
             # invocations the release build uses in deploy.yml.
-            - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2.87.12
+            - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
               if: github.event_name == 'schedule'
               with:
                   tool: cargo-cyclonedx
